@@ -49,7 +49,6 @@ func ReadCSVFile(cfg *config.Conf) error {
 		title := make(map[string]string)
 		metadata := make(map[string]interface{})
 		metadataValues := make(map[string]interface{})
-		// metadata["metadata_values"] = make(map[string]interface{})
 
 		// Loop over each value in the row
 		for count, value := range row {
