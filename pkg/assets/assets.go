@@ -119,7 +119,7 @@ func GetCSVColumnsFromView(cfg *config.Conf) ([]string, error) {
 
 	for _, field := range meta.ViewFields {
 		if field.Name != "__separator__" {
-			csvColumns = append(csvColumns, field.Label)
+			csvColumns = append(csvColumns, field.Name)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
-	filePath := "csv/" + filename
+	filePath := cfg.Output + filename
 
 	// Open the CSV file
 	csvFile, err := os.Create(filePath)

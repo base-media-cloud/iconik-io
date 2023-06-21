@@ -14,6 +14,8 @@ type CMDArgs struct {
 	AuthToken    string
 	CollectionID string
 	ViewID       string
+	Input        string
+	Output       string
 }
 
 var (
@@ -50,6 +52,8 @@ func argParse() {
 	flag.StringVar(&cmds.AuthToken, "auth-token", "", "The iconik Authentication token")
 	flag.StringVar(&cmds.CollectionID, "collection-id", "", "iconik Collection Id")
 	flag.StringVar(&cmds.ViewID, "metadata-view-id", "", "iconik Metadata View Id")
+	flag.StringVar(&cmds.Input, "input", "", "Input mode - requires path to input CSV file")
+	flag.StringVar(&cmds.Output, "output", "csv/", "Output mode - requires path to save CSV file")
 	flag.Parse()
 	if cmds.AppID == "" {
 		log.Fatal("No App-Id provided")
@@ -66,6 +70,9 @@ func argParse() {
 	if cmds.ViewID == "" {
 		log.Fatal("No Metadata View ID provided")
 	}
+	if cmds.Input == "" && cmds.Output == "" {
+		log.Fatal("Neither input or output mode selected. Please select one.")
+	}
 }
 
 func constructConfig(args *CMDArgs) {
@@ -74,4 +81,6 @@ func constructConfig(args *CMDArgs) {
 	cfg.AuthToken = args.AuthToken
 	cfg.CollectionID = args.CollectionID
 	cfg.ViewID = args.ViewID
+	cfg.Input = args.Input
+	cfg.Output = args.Output
 }
