@@ -33,7 +33,7 @@ func ReadCSVFile(cfg *config.Conf) error {
 
 	// Check for properly formatted headers
 	if fields[0] != "id" || fields[1] != "title" {
-		return errors.New("CSV file not properly formatted for Iconik. Exiting")
+		return errors.New("CSV file not properly formatted for Iconik")
 	}
 
 	// Loop through each row of the CSV
@@ -72,7 +72,7 @@ func ReadCSVFile(cfg *config.Conf) error {
 
 				// Check if the header exists in metadataValues
 				if _, ok := metadataValues[header]; !ok {
-					// Create a new field_values slice
+					// Create a new field values slice
 					metadataValues[header] = map[string]interface{}{
 						"field_values": []map[string]interface{}{},
 					}
