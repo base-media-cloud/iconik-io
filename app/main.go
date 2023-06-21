@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/reader"
 )
 
 type CMDArgs struct {
@@ -30,20 +32,33 @@ func main() {
 	// Construct config struct from command line args
 	constructConfig(&cmds)
 
-	// Get Assets
-	a, err := assets.GetCollectionAssets(&cfg)
-	if err != nil {
-		panic(err)
+	if cmds.Output != "" {
+		// User has chosen CSV output
+
+		// Get Assets
+		a, err := assets.GetCollectionAssets(&cfg)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(a)
+
+		// Get CSV Headers
+		columns, err := assets.GetCSVColumnsFromView(&cfg)
+		if err != nil {
+			panic(err)
+		}
+
+		// Build CSV and output
+		a.BuildCSVFile(&cfg, columns)
 	}
 
-	// Get CSV Headers
-	columns, err := assets.GetCSVColumnsFromView(&cfg)
-	if err != nil {
-		panic(err)
+	if cmds.Input != "" {
+		// User has chosen CSV input
+		err := reader.ReadCSVFile(&cfg)
+		if err != nil {
+			panic(err)
+		}
 	}
-
-	// Build CSV and output
-	a.BuildCSVFile(&cfg, columns)
 }
 
 func argParse() {
