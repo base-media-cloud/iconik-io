@@ -5,10 +5,12 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 )
@@ -64,11 +66,6 @@ func ReadCSVFile(cfg *config.Conf) error {
 				// Columns after that are our metadata and variable in length
 				header := fields[count]
 
-				// Create a field value map
-				fieldValue := map[string]interface{}{
-					"value": value,
-				}
-
 				// Check if the header exists in metadataValues
 				if _, ok := metadataValues[header]; !ok {
 					// Create a new field values slice
@@ -77,15 +74,28 @@ func ReadCSVFile(cfg *config.Conf) error {
 					}
 				}
 
-				// Check if there is even anything in the column
-				if value != "" {
-					// Append the field value to the slice
-					fieldValues := metadataValues[header].(map[string]interface{})["field_values"].([]map[string]interface{})
-					fieldValues = append(fieldValues, fieldValue)
-					metadataValues[header].(map[string]interface{})["field_values"] = fieldValues
-				} else {
-					// If metadata not in column, remove the key
-					delete(metadataValues, header)
+				// Turn all the field values into an array, even if there is only one
+				valueArr := strings.Split(value, ",")
+
+				if len(valueArr) > 0 {
+					// Range over the array of substrings
+					for _, val := range valueArr {
+						// Create a field value map
+						fieldValue := map[string]interface{}{
+							"value": val,
+						}
+						// Check if there is even anything in the column
+						if value != "" {
+							// Append the field value to the slice
+							fieldValues := metadataValues[header].(map[string]interface{})["field_values"].([]map[string]interface{})
+							fieldValues = append(fieldValues, fieldValue)
+							fmt.Println(fieldValues)
+							metadataValues[header].(map[string]interface{})["field_values"] = fieldValues
+						} else {
+							// If metadata not in column, remove the key
+							delete(metadataValues, header)
+						}
+					}
 				}
 			}
 		}
@@ -175,10 +185,11 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 	defer res.Body.Close()
 
-	_, err = io.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(resBody))
 
 	if res.StatusCode == 200 {
 		log.Println("Successfully updated metadata for asset", assetID)

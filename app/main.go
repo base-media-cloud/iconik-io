@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
@@ -40,7 +39,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(a)
 
 		// Get CSV Headers
 		columns, err := assets.GetCSVColumnsFromView(&cfg)
@@ -63,12 +61,12 @@ func main() {
 
 func argParse() {
 	flag.StringVar(&cmds.IconikURL, "iconik-url", "https://preview.iconik.cloud", "iconik URL")
-	flag.StringVar(&cmds.AppID, "app-id", "", "The iconik Application ID")
-	flag.StringVar(&cmds.AuthToken, "auth-token", "", "The iconik Authentication token")
-	flag.StringVar(&cmds.CollectionID, "collection-id", "", "iconik Collection Id")
-	flag.StringVar(&cmds.ViewID, "metadata-view-id", "", "iconik Metadata View Id")
+	flag.StringVar(&cmds.AppID, "app-id", "", "iconik Application ID")
+	flag.StringVar(&cmds.AuthToken, "auth-token", "", "iconik Authentication token")
+	flag.StringVar(&cmds.CollectionID, "collection-id", "", "iconik Collection ID")
+	flag.StringVar(&cmds.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
 	flag.StringVar(&cmds.Input, "input", "", "Input mode - requires path to input CSV file")
-	flag.StringVar(&cmds.Output, "output", "csv/", "Output mode - requires path to save CSV file")
+	flag.StringVar(&cmds.Output, "output", "", "Output mode - requires path to save CSV file")
 	flag.Parse()
 	if cmds.AppID == "" {
 		log.Fatal("No App-Id provided")

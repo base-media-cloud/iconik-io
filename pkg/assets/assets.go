@@ -182,6 +182,6 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 		}
 	}
 
-	fmt.Println("File successfully saved to", filePath)
+	log.Println("File successfully saved to", filePath)
 	return nil
 }
