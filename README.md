@@ -31,8 +31,8 @@ There are two primary modes of use for this script, input and output.  Input mod
 	- First column is ALWAYS the UUID of the asset
 	- Second column is ALWAYS the title of the asset
 	- Columns 3->n are the values of the metadata fields in R1
-<!-- 	- If a field can have multiple values, they must be comma separated in the appropriate cell.
-	- If a field is a boolean, it must be either `TRUE` or `FALSE` -->
+	- If a field can have multiple values, they must be comma separated in the appropriate cell.
+	- If a field is a boolean, it must be either `TRUE` or `FALSE`
 
 | id | title | field1_name | field2_name | bool_field_name |
 | ------ | ------ | ------ | ------ | ------ |
@@ -66,10 +66,12 @@ For output mode, you are required to use a few more flags
 
 # Eg.
 #Input mode:
-pd-iconik-io-rd -input ~/Desktop/input.csv -app-id <AppID> -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url <IconikURL> -metadata-view-id <ViewID>
+pd-iconik-io-rd -input ~/Desktop/input.csv -app-id <AppID> -auth-token <AuthToken> \
+-collection-id <CollectionID> -iconik-url <IconikURL> -metadata-view-id <ViewID>
 
 #Output mode:
-pd-iconik-io-rd -output ~/Desktop -app-id <AppID> -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url <IconikURL> -metadata-view-id <ViewID>
+pd-iconik-io-rd -output ~/Desktop -app-id <AppID> -auth-token <AuthToken> \
+-collection-id <CollectionID> -iconik-url <IconikURL> -metadata-view-id <ViewID>
 ```
 
 
