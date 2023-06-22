@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -39,8 +40,7 @@ func GetCollectionAssets(cfg *config.Conf) (*Assets, error) {
 
 	requestBody, err := json.Marshal(searchDoc)
 	if err != nil {
-		fmt.Println("Error marshaling request body:", err)
-		return nil, err
+		return nil, errors.New("error marshaling request body")
 	}
 
 	client := &http.Client{}
@@ -135,8 +135,7 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 	// Open the CSV file
 	csvFile, err := os.Create(filePath)
 	if err != nil {
-		fmt.Println("Error creating CSV file:", err)
-		return err
+		return errors.New("error creating CSV file")
 	}
 	defer csvFile.Close()
 
@@ -147,8 +146,7 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 	headerRow := append([]string{"id", "title"}, metadataFieldList...)
 	err = metadataFile.Write(headerRow)
 	if err != nil {
-		fmt.Println("Error writing header row:", err)
-		return err
+		return errors.New("error writing header row")
 	}
 	columns := len(metadataFieldList)
 
@@ -177,8 +175,7 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 
 		err = metadataFile.Write(row)
 		if err != nil {
-			fmt.Println("Error writing row:", err)
-			return err
+			return errors.New("error writing row")
 		}
 	}
 

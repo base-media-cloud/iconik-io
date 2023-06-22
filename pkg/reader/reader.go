@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
@@ -80,16 +81,23 @@ func ReadCSVFile(cfg *config.Conf) error {
 				if len(valueArr) > 0 {
 					// Range over the array of substrings
 					for _, val := range valueArr {
+
+						// Validate the schema
+						header, val, err = schemaValidator(header, val)
+						if err != nil {
+							return err
+						}
+
 						// Create a field value map
 						fieldValue := map[string]interface{}{
 							"value": val,
 						}
+
 						// Check if there is even anything in the column
-						if value != "" {
+						if val != "" {
 							// Append the field value to the slice
 							fieldValues := metadataValues[header].(map[string]interface{})["field_values"].([]map[string]interface{})
 							fieldValues = append(fieldValues, fieldValue)
-							fmt.Println(fieldValues)
 							metadataValues[header].(map[string]interface{})["field_values"] = fieldValues
 						} else {
 							// If metadata not in column, remove the key
@@ -100,13 +108,19 @@ func ReadCSVFile(cfg *config.Conf) error {
 			}
 		}
 		// Update the title
-		updateTitle(cfg, row[0], title)
+		err = updateTitle(cfg, row[0], title)
+		if err != nil {
+			return err
+		}
 
 		// Assign the metadata values to the metadata map
 		metadata["metadata_values"] = metadataValues
 
 		// Update the metadata
-		updateMetadata(cfg, row[0], metadata)
+		err = updateMetadata(cfg, row[0], metadata)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -185,11 +199,10 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 	defer res.Body.Close()
 
-	resBody, err := io.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(resBody))
 
 	if res.StatusCode == 200 {
 		log.Println("Successfully updated metadata for asset", assetID)
@@ -200,4 +213,55 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 
 	return nil
+}
+
+func schemaValidator(header, val string) (string, string, error) {
+	// Schema validation for boolean fields
+	if header == "Signedoff" || header == "win_Archived" || header == "ShareNo" || header == "bmc_sapProductAssetOnly" {
+		if val == "TRUE" {
+			val = "true"
+		} else if val == "FALSE" {
+			val = "false"
+		} else if val == "true" || val == "false" {
+		} else {
+			return header, val, fmt.Errorf("For %s the value must either be set to true or false. The value is currently set to: %s", header, val)
+		}
+	}
+
+	if header == "pdTest_FrameRate" || header == "pdTest_AudioFrameRate" {
+		if val == "23.976" || val == "23.98" || val == "24" || val == "25" || val == "29.97" || val == "30" || val == "50" || val == "59.94" || val == "60" {
+		} else {
+			return header, val, fmt.Errorf("For %s the value must either be set to 23.976, 23.98, 24, 25, 29.97, 30, 50, 59.94 or 60. The value is currently set to: %s", header, val)
+		}
+	}
+
+	if header == "pdTest_FrameRateMode" {
+		if val == "Constant" || val == "Variable" {
+		} else {
+			return header, val, fmt.Errorf("For %s the value must either be set to Constant or Variable. The value is currently set to: %s", header, val)
+		}
+	}
+
+	if header == "AIProcess" {
+		if val == "Transcription" || val == "Object Recognition" || val == "Sports Classification" {
+		} else {
+			return header, val, fmt.Errorf("For %s the value must either be set to Transcription, Object Recognition or Sports Classification. The value is currently set to: %s", header, val)
+		}
+	}
+
+	if header == "ContentCategories" {
+		if val == "Demo Content" || val == "Case Studies" || val == "Promotional" || val == "Projects" || val == "Internal" || val == "Miscellaneous" {
+		} else {
+			return header, val, fmt.Errorf("For %s the value must either be set to Demo Content, Case Studies, Promotional, Projects, Internal or Miscellaneous. The value is currently set to: %s", header, val)
+		}
+	}
+
+	if header == "win_ArchiveDelay" {
+		_, err := strconv.Atoi(val)
+		if err != nil {
+			return header, val, fmt.Errorf("For %s the value must be set to an integer. The value is currently set to: %s", header, val)
+		}
+	}
+
+	return header, val, nil
 }
