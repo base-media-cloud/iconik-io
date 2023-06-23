@@ -11,6 +11,4 @@ type Conf struct {
 	ViewID       string
 	Input        string
 	Output       string
-	AssetIds     []string // to be appended after initial GetAsset response
-	ObjectIds    []string // to be appended after initial GetAsset response
 }

@@ -13,7 +13,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
 )
 
 func ReadCSVFile(cfg *config.Conf) error {
@@ -57,8 +60,29 @@ func ReadCSVFile(cfg *config.Conf) error {
 		for count, value := range row {
 			// First column is always our asset id
 			if count == 0 {
-				continue
-				// TODO: Add validation for asset ID
+				// UUID validation
+				_, err := uuid.Parse(value)
+				if err != nil {
+					return errors.New("not a valid asset ID")
+				}
+
+				// Check asset exists on Iconik servers
+				_, err = assets.GetAssetbyID(value, cfg)
+				if err != nil {
+					return fmt.Errorf("Error %s", err)
+				}
+
+				// Check asset is in collection provided
+				bool, err := assets.DoesAssetExistInCollection(value, cfg)
+				if err != nil {
+					return err
+				}
+				if bool {
+					continue
+				} else {
+					return errors.New("Asset does not exist in given Collection ID")
+				}
+
 			} else if count == 1 {
 				// Second column is always our title
 				title["title"] = value

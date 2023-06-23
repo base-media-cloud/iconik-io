@@ -16,6 +16,83 @@ import (
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 )
 
+func GetAssetbyID(assetID string, cfg *config.Conf) (int, error) {
+	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
+	log.Println(uri)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, uri, nil)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	req.Header.Add("App-ID", cfg.AppID)
+	req.Header.Add("Auth-Token", cfg.AuthToken)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return res.StatusCode, err
+	}
+	defer res.Body.Close()
+
+	_, err = io.ReadAll(res.Body)
+	if err != nil {
+		return res.StatusCode, err
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return res.StatusCode, fmt.Errorf("%d: Asset not found on Iconik servers", res.StatusCode)
+	}
+
+	return res.StatusCode, nil
+
+}
+
+func DoesAssetExistInCollection(assetID string, cfg *config.Conf) (bool, error) {
+	var a *Assets
+	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
+	log.Println(uri)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, uri, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Add("App-ID", cfg.AppID)
+	req.Header.Add("Auth-Token", cfg.AuthToken)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close()
+
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return false, err
+	}
+
+	err = json.Unmarshal(responseBody, &a)
+	if err != nil {
+		return false, err
+	}
+
+	for _, asset := range a.Objects {
+		if asset.ID == assetID {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // get all results from a collection and return the full object list with metadata
 func GetCollectionAssets(cfg *config.Conf) (*Assets, error) {
 	var assets *Assets
