@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
+	"net/http"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
@@ -71,6 +73,7 @@ func argParse() {
 	flag.StringVar(&cmds.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cmds.Output, "output", "", "Output mode - requires path to save CSV file")
 	flag.Parse()
+
 	if cmds.AppID == "" {
 		log.Fatal("No App-Id provided")
 	}
@@ -89,6 +92,12 @@ func argParse() {
 	if cmds.Input == "" && cmds.Output == "" {
 		log.Fatal("Neither input or output mode selected. Please select one.")
 	}
+
+	err := iconikErrorCheck(&cmds)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func constructConfig(args *CMDArgs) {
@@ -99,4 +108,36 @@ func constructConfig(args *CMDArgs) {
 	cfg.ViewID = args.ViewID
 	cfg.Input = args.Input
 	cfg.Output = args.Output
+}
+
+func iconikErrorCheck(args *CMDArgs) error {
+
+	uri := cmds.IconikURL + "/API/assets/v1/collections/" + cmds.CollectionID + "/contents/?object_types=assets"
+	log.Println(uri)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, uri, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("App-ID", cmds.AppID)
+	req.Header.Add("Auth-Token", cmds.AuthToken)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		return nil
+	} else if res.StatusCode == http.StatusUnauthorized {
+
+		return errors.New("Unauthorized. Please check your App-ID and Auth Token are correct.")
+	}
+	return nil
 }
