@@ -10,13 +10,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
 )
 
 func ReadCSVFile(cfg *config.Conf) error {
@@ -67,20 +66,20 @@ func ReadCSVFile(cfg *config.Conf) error {
 				}
 
 				// Check asset exists on Iconik servers
-				_, err = assets.GetAssetbyID(value, cfg)
+				_, err = validate.CheckAssetbyID(value, cfg)
 				if err != nil {
-					return fmt.Errorf("Error %s", err)
+					return fmt.Errorf("error %s", err)
 				}
 
 				// Check asset is in collection provided
-				code, err := assets.DoesAssetExistInCollection(value, cfg)
+				code, err := validate.CheckAssetExistInCollection(value, cfg)
 				if err != nil {
 					return err
 				}
 				if code == http.StatusOK {
 					continue
 				} else {
-					return errors.New("Asset does not exist in given Collection ID")
+					return errors.New("asset does not exist in given Collection ID")
 				}
 
 			} else if count == 1 {
@@ -107,7 +106,7 @@ func ReadCSVFile(cfg *config.Conf) error {
 					for _, val := range valueArr {
 
 						// Validate the schema
-						header, val, err = schemaValidator(header, val)
+						header, val, err = validate.SchemaValidator(header, val)
 						if err != nil {
 							return err
 						}
@@ -237,55 +236,4 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 
 	return nil
-}
-
-func schemaValidator(header, val string) (string, string, error) {
-	// Schema validation for boolean fields
-	if header == "Signedoff" || header == "win_Archived" || header == "ShareNo" || header == "bmc_sapProductAssetOnly" {
-		if val == "TRUE" {
-			val = "true"
-		} else if val == "FALSE" {
-			val = "false"
-		} else if val == "true" || val == "false" {
-		} else {
-			return header, val, fmt.Errorf("For %s the value must either be set to true or false. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "pdTest_FrameRate" || header == "pdTest_AudioFrameRate" {
-		if val == "23.976" || val == "23.98" || val == "24" || val == "25" || val == "29.97" || val == "30" || val == "50" || val == "59.94" || val == "60" {
-		} else {
-			return header, val, fmt.Errorf("For %s the value must either be set to 23.976, 23.98, 24, 25, 29.97, 30, 50, 59.94 or 60. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "pdTest_FrameRateMode" {
-		if val == "Constant" || val == "Variable" {
-		} else {
-			return header, val, fmt.Errorf("For %s the value must either be set to Constant or Variable. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "AIProcess" {
-		if val == "Transcription" || val == "Object Recognition" || val == "Sports Classification" {
-		} else {
-			return header, val, fmt.Errorf("For %s the value must either be set to Transcription, Object Recognition or Sports Classification. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "ContentCategories" {
-		if val == "Demo Content" || val == "Case Studies" || val == "Promotional" || val == "Projects" || val == "Internal" || val == "Miscellaneous" {
-		} else {
-			return header, val, fmt.Errorf("For %s the value must either be set to Demo Content, Case Studies, Promotional, Projects, Internal or Miscellaneous. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "win_ArchiveDelay" {
-		_, err := strconv.Atoi(val)
-		if err != nil {
-			return header, val, fmt.Errorf("For %s the value must be set to an integer. The value is currently set to: %s", header, val)
-		}
-	}
-
-	return header, val, nil
 }
