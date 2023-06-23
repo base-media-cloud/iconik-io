@@ -80,9 +80,6 @@ func argParse() {
 	if cmds.AuthToken == "" {
 		log.Fatal("No Auth-Token provided")
 	}
-	if cmds.IconikURL == "" {
-		log.Fatal("No Iconik URL provided")
-	}
 	if cmds.CollectionID == "" {
 		log.Fatal("No Collection ID provided")
 	}
