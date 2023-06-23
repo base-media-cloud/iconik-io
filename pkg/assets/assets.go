@@ -51,7 +51,7 @@ func GetAssetbyID(assetID string, cfg *config.Conf) (int, error) {
 
 }
 
-func DoesAssetExistInCollection(assetID string, cfg *config.Conf) (bool, error) {
+func DoesAssetExistInCollection(assetID string, cfg *config.Conf) (int, error) {
 	var a *Assets
 	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
 	log.Println(uri)
@@ -60,7 +60,7 @@ func DoesAssetExistInCollection(assetID string, cfg *config.Conf) (bool, error) 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, uri, nil)
 	if err != nil {
-		return false, err
+		return http.StatusBadRequest, err
 	}
 
 	req.Header.Add("App-ID", cfg.AppID)
@@ -70,27 +70,27 @@ func DoesAssetExistInCollection(assetID string, cfg *config.Conf) (bool, error) 
 
 	res, err := client.Do(req)
 	if err != nil {
-		return false, err
+		return http.StatusBadRequest, err
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return false, err
+		return res.StatusCode, err
 	}
 
 	err = json.Unmarshal(responseBody, &a)
 	if err != nil {
-		return false, err
+		return res.StatusCode, err
 	}
 
 	for _, asset := range a.Objects {
 		if asset.ID == assetID {
-			return true, nil
+			return res.StatusCode, nil
 		}
 	}
 
-	return false, nil
+	return res.StatusCode, nil
 }
 
 // get all results from a collection and return the full object list with metadata

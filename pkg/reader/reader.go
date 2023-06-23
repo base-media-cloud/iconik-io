@@ -73,11 +73,11 @@ func ReadCSVFile(cfg *config.Conf) error {
 				}
 
 				// Check asset is in collection provided
-				bool, err := assets.DoesAssetExistInCollection(value, cfg)
+				code, err := assets.DoesAssetExistInCollection(value, cfg)
 				if err != nil {
 					return err
 				}
-				if bool {
+				if code == http.StatusOK {
 					continue
 				} else {
 					return errors.New("Asset does not exist in given Collection ID")

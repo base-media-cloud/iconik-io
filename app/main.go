@@ -47,7 +47,10 @@ func main() {
 		}
 
 		// Build CSV and output
-		a.BuildCSVFile(&cfg, columns)
+		err = a.BuildCSVFile(&cfg, columns)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if cmds.Input != "" {
