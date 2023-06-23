@@ -98,6 +98,11 @@ func argParse() {
 		panic(err)
 	}
 
+	err = iconikErrorCheckMetadata(&cmds)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func constructConfig(args *CMDArgs) {
@@ -111,9 +116,8 @@ func constructConfig(args *CMDArgs) {
 }
 
 func iconikErrorCheck(args *CMDArgs) error {
-
+	// Check app ID, auth token and collection ID are all valid
 	uri := cmds.IconikURL + "/API/assets/v1/collections/" + cmds.CollectionID + "/contents/?object_types=assets"
-	log.Println(uri)
 	method := "GET"
 
 	client := &http.Client{}
@@ -136,8 +140,43 @@ func iconikErrorCheck(args *CMDArgs) error {
 	if res.StatusCode == http.StatusOK {
 		return nil
 	} else if res.StatusCode == http.StatusUnauthorized {
-
 		return errors.New("Unauthorized. Please check your App-ID and Auth Token are correct.")
+	} else if res.StatusCode == http.StatusNotFound {
+		return errors.New("Not found. Please check your collection ID is correct.")
 	}
+
+	return nil
+}
+
+func iconikErrorCheckMetadata(args *CMDArgs) error {
+
+	uri2 := cmds.IconikURL + "/API/metadata/v1/views/" + cmds.ViewID
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, uri2, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("App-ID", cmds.AppID)
+	req.Header.Add("Auth-Token", cmds.AuthToken)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		return nil
+	} else if res.StatusCode == http.StatusUnauthorized {
+		return errors.New("Unauthorized. Please check your metadata ID is correct.")
+	} else if res.StatusCode == http.StatusNotFound {
+		return errors.New("Not found. Please check your metadata ID is correct.")
+	}
+
 	return nil
 }
