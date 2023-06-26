@@ -7,18 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
 )
 
-func ReadCSVFile(cfg *config.Conf) error {
+func ReadCSVFile(cfg *config.Conf, log *zap.SugaredLogger) error {
 
 	// Open CSV file
 	csvFile, err := os.Open(cfg.Input)
@@ -66,13 +66,13 @@ func ReadCSVFile(cfg *config.Conf) error {
 				}
 
 				// Check asset exists on Iconik servers
-				_, err = validate.CheckAssetbyID(value, cfg)
+				_, err = validate.CheckAssetbyID(value, cfg, log)
 				if err != nil {
 					return fmt.Errorf("error %s", err)
 				}
 
 				// Check asset is in collection provided
-				code, err := validate.CheckAssetExistInCollection(value, cfg)
+				code, err := validate.CheckAssetExistInCollection(value, cfg, log)
 				if err != nil {
 					return err
 				}
@@ -131,7 +131,7 @@ func ReadCSVFile(cfg *config.Conf) error {
 			}
 		}
 		// Update the title
-		err = updateTitle(cfg, row[0], title)
+		err = updateTitle(cfg, row[0], title, log)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func ReadCSVFile(cfg *config.Conf) error {
 		metadata["metadata_values"] = metadataValues
 
 		// Update the metadata
-		err = updateMetadata(cfg, row[0], metadata)
+		err = updateMetadata(cfg, row[0], metadata, log)
 		if err != nil {
 			return err
 		}
@@ -150,9 +150,9 @@ func ReadCSVFile(cfg *config.Conf) error {
 }
 
 // updateTitle updates the title for the given asset ID.
-func updateTitle(cfg *config.Conf, assetID string, title map[string]string) error {
+func updateTitle(cfg *config.Conf, assetID string, title map[string]string, log *zap.SugaredLogger) error {
 	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	log.Println(uri)
+	log.Infow(uri)
 	method := "PATCH"
 
 	requestBody, err := json.Marshal(title)
@@ -183,10 +183,10 @@ func updateTitle(cfg *config.Conf, assetID string, title map[string]string) erro
 	}
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated title name for asset", assetID)
+		log.Infow("Successfully updated title name for asset", assetID)
 	} else {
-		log.Println("Error updating title name for asset", assetID)
-		log.Println(res.StatusCode)
+		log.Infow("Error updating title name for asset", assetID)
+		log.Infow(fmt.Sprint(res.StatusCode))
 		return err
 	}
 
@@ -194,10 +194,10 @@ func updateTitle(cfg *config.Conf, assetID string, title map[string]string) erro
 }
 
 // updateMetadata updates the metadata for the given asset ID.
-func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interface{}) error {
+func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interface{}, log *zap.SugaredLogger) error {
 
 	uri := cfg.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + cfg.ViewID + "/"
-	log.Println(uri)
+	log.Infow(uri)
 	method := "PUT"
 
 	requestBody, err := json.Marshal(metadata)
@@ -228,10 +228,10 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated metadata for asset", assetID)
+		log.Infow("Successfully updated metadata for asset", assetID)
 	} else {
-		log.Println("Error updating metadata for asset", assetID)
-		log.Println(res.StatusCode)
+		log.Infow("Error updating metadata for asset", assetID)
+		log.Infow(fmt.Sprint(res.StatusCode))
 		return err
 	}
 

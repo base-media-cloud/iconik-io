@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
+	"go.uber.org/zap"
 )
 
 func CheckAppIDAuthTokenCollectionID(cfg *config.Conf) error {
@@ -79,9 +79,9 @@ func CheckMetadataID(cfg *config.Conf) error {
 	return nil
 }
 
-func CheckAssetbyID(assetID string, cfg *config.Conf) (int, error) {
+func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
 	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	log.Println(uri)
+	log.Infow(uri)
 	method := "GET"
 
 	client := &http.Client{}
@@ -114,10 +114,10 @@ func CheckAssetbyID(assetID string, cfg *config.Conf) (int, error) {
 
 }
 
-func CheckAssetExistInCollection(assetID string, cfg *config.Conf) (int, error) {
+func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
 	var a *assets.Assets
 	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
-	log.Println(uri)
+	log.Infow(uri)
 	method := "GET"
 
 	client := &http.Client{}

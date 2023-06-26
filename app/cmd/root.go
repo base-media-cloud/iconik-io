@@ -8,6 +8,7 @@ import (
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/reader"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
+	"go.uber.org/zap"
 )
 
 type CMDArgs struct {
@@ -25,30 +26,31 @@ var (
 	cmds CMDArgs
 )
 
-func Execute() error {
+func Execute(log *zap.SugaredLogger) error {
+
 	// Parse the flags entered
 	err := argParse()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if cfg.Output != "" {
 		// User has chosen CSV output
 
 		// Get Assets
-		a, err := assets.GetCollectionAssets(&cfg)
+		a, err := assets.GetCollectionAssets(&cfg, log)
 		if err != nil {
 			return err
 		}
 
 		// Get CSV Headers
-		columns, err := assets.GetCSVColumnsFromView(&cfg)
+		columns, err := assets.GetCSVColumnsFromView(&cfg, log)
 		if err != nil {
 			return err
 		}
 
 		// Build CSV and output
-		err = a.BuildCSVFile(&cfg, columns)
+		err = a.BuildCSVFile(&cfg, columns, log)
 		if err != nil {
 			return err
 		}
@@ -56,7 +58,7 @@ func Execute() error {
 
 	if cfg.Input != "" {
 		// User has chosen CSV input
-		err := reader.ReadCSVFile(&cfg)
+		err := reader.ReadCSVFile(&cfg, log)
 		if err != nil {
 			return err
 		}

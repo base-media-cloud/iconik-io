@@ -7,20 +7,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
+	"go.uber.org/zap"
 )
 
 // get all results from a collection and return the full object list with metadata
-func GetCollectionAssets(cfg *config.Conf) (*Assets, error) {
+func GetCollectionAssets(cfg *config.Conf, log *zap.SugaredLogger) (*Assets, error) {
 	var assets *Assets
 	url := cfg.IconikURL + "/API/search/v1/search/"
-	log.Println(url)
+	log.Infow(url)
 	method := "POST"
 
 	searchDoc := map[string]interface{}{
@@ -81,13 +81,13 @@ func GetCollectionAssets(cfg *config.Conf) (*Assets, error) {
 }
 
 // get a column list from a metadata view for our CSV file
-func GetCSVColumnsFromView(cfg *config.Conf) ([]string, error) {
+func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, error) {
 
 	var csvColumns []string
 	var meta *MetadataFields
 
 	url := cfg.IconikURL + "/API/metadata/v1/views/" + cfg.ViewID
-	log.Println(url)
+	log.Infow(url)
 	method := "GET"
 
 	client := &http.Client{}
@@ -126,7 +126,7 @@ func GetCSVColumnsFromView(cfg *config.Conf) ([]string, error) {
 	return csvColumns, nil
 }
 
-func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) error {
+func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string, log *zap.SugaredLogger) error {
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
@@ -179,6 +179,6 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string) erro
 		}
 	}
 
-	log.Println("File successfully saved to", filePath)
+	log.Info("File successfully saved to", filePath)
 	return nil
 }
