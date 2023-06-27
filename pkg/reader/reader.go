@@ -183,9 +183,9 @@ func updateTitle(cfg *config.Conf, assetID string, title map[string]string, log 
 	}
 
 	if res.StatusCode == 200 {
-		log.Infow("Successfully updated title name for asset", assetID)
+		log.Info("Successfully updated title name for asset ", assetID)
 	} else {
-		log.Infow("Error updating title name for asset", assetID)
+		log.Info("Error updating title name for asset ", assetID)
 		log.Infow(fmt.Sprint(res.StatusCode))
 		return err
 	}
@@ -228,9 +228,9 @@ func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interf
 	}
 
 	if res.StatusCode == 200 {
-		log.Infow("Successfully updated metadata for asset", assetID)
+		log.Info("Successfully updated metadata for asset ", assetID)
 	} else {
-		log.Infow("Error updating metadata for asset", assetID)
+		log.Info("Error updating metadata for asset ", assetID)
 		log.Infow(fmt.Sprint(res.StatusCode))
 		return err
 	}

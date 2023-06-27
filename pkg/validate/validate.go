@@ -14,7 +14,7 @@ import (
 )
 
 func CheckAppIDAuthTokenCollectionID(cfg *config.Conf) error {
-	// Check app ID, auth token and collection ID are all valid
+
 	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
 	method := "GET"
 
@@ -81,7 +81,6 @@ func CheckMetadataID(cfg *config.Conf) error {
 
 func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
 	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	log.Infow(uri)
 	method := "GET"
 
 	client := &http.Client{}
@@ -116,8 +115,7 @@ func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (i
 
 func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
 	var a *model.Assets
-	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
-	log.Infow(uri)
+	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/"
 	method := "GET"
 
 	client := &http.Client{}
@@ -157,7 +155,7 @@ func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.Suga
 }
 
 func SchemaValidator(header, val string) (string, string, error) {
-	// Schema validation for boolean fields
+
 	if header == "Signedoff" || header == "win_Archived" || header == "ShareNo" || header == "bmc_sapProductAssetOnly" {
 		if val == "TRUE" {
 			val = "true"
