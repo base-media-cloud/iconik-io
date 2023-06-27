@@ -126,7 +126,7 @@ func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, 
 	return csvColumns, nil
 }
 
-func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string, log *zap.SugaredLogger) error {
+func (a *Assets) BuildCSVFile(cfg *config.Conf, csvColumns []string, log *zap.SugaredLogger) error {
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
@@ -143,21 +143,21 @@ func (a *Assets) BuildCSVFile(cfg *config.Conf, metadataFieldList []string, log 
 	defer metadataFile.Flush()
 
 	// Write the header row
-	headerRow := append([]string{"id", "title"}, metadataFieldList...)
+	headerRow := append([]string{"id", "title"}, csvColumns...)
 	err = metadataFile.Write(headerRow)
 	if err != nil {
 		return errors.New("error writing header row")
 	}
-	columns := len(metadataFieldList)
+	numColumns := len(csvColumns)
 
 	// Loop through all assets
 	for _, asset := range a.Objects {
-		row := make([]string, columns+2) // +2 for id and title
+		row := make([]string, numColumns+2) // +2 for id and title
 		row[0] = asset.ID
 		row[1] = asset.Title
 
-		for i := 0; i < columns; i++ {
-			metadataField := metadataFieldList[i]
+		for i := 0; i < numColumns; i++ {
+			metadataField := csvColumns[i]
 			metadataValue, ok := asset.Metadata[metadataField]
 			if ok {
 				switch v := metadataValue.(type) {
