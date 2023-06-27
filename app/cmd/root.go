@@ -44,13 +44,13 @@ func Execute(log *zap.SugaredLogger) error {
 		}
 
 		// Get CSV Headers
-		columns, err := assets.GetCSVColumnsFromView(&cfg, log)
+		columnsName, columnsLabel, err := assets.GetCSVColumnsFromView(&cfg, log)
 		if err != nil {
 			return err
 		}
 
 		// Build CSV and output
-		err = a.BuildCSVFile(&cfg, columns, log)
+		err = a.BuildCSVFile(&cfg, columnsName, columnsLabel, log)
 		if err != nil {
 			return err
 		}

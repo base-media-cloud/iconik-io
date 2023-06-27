@@ -2,23 +2,20 @@ package assets
 
 import (
 	"bytes"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/model"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
 	"go.uber.org/zap"
 )
 
 // get all results from a collection and return the full object list with metadata
-func GetCollectionAssets(cfg *config.Conf, log *zap.SugaredLogger) (*Assets, error) {
-	var assets *Assets
+func GetCollectionAssets(cfg *config.Conf, log *zap.SugaredLogger) (*model.Assets, error) {
+	var assets *model.Assets
 	url := cfg.IconikURL + "/API/search/v1/search/"
 	log.Infow(url)
 	method := "POST"
@@ -72,7 +69,20 @@ func GetCollectionAssets(cfg *config.Conf, log *zap.SugaredLogger) (*Assets, err
 		return nil, err
 	}
 
-	err = json.Unmarshal(responseBody, &assets)
+	var data map[string]interface{}
+	err = json.Unmarshal(responseBody, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	dataNoNull := validate.RemoveNullJSON(data)
+
+	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(jsonData, &assets)
 	if err != nil {
 		return nil, err
 	}
@@ -81,10 +91,11 @@ func GetCollectionAssets(cfg *config.Conf, log *zap.SugaredLogger) (*Assets, err
 }
 
 // get a column list from a metadata view for our CSV file
-func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, error) {
+func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, []string, error) {
 
-	var csvColumns []string
-	var meta *MetadataFields
+	var csvColumnsName []string
+	var csvColumnsLabel []string
+	var meta *model.MetadataFields
 
 	url := cfg.IconikURL + "/API/metadata/v1/views/" + cfg.ViewID
 	log.Infow(url)
@@ -93,7 +104,7 @@ func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	req.Header.Add("App-ID", cfg.AppID)
@@ -103,82 +114,39 @@ func GetCSVColumnsFromView(cfg *config.Conf, log *zap.SugaredLogger) ([]string, 
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer res.Body.Close()
 
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = json.Unmarshal(responseBody, &meta)
+	var data map[string]interface{}
+	err = json.Unmarshal(responseBody, &data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	dataNoNull := validate.RemoveNullJSON(data)
+
+	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = json.Unmarshal(jsonData, &meta)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	for _, field := range meta.ViewFields {
 		if field.Name != "__separator__" {
-			csvColumns = append(csvColumns, field.Name)
+			csvColumnsName = append(csvColumnsName, field.Name)
+			csvColumnsLabel = append(csvColumnsLabel, field.Label)
 		}
 	}
 
-	return csvColumns, nil
-}
-
-func (a *Assets) BuildCSVFile(cfg *config.Conf, csvColumns []string, log *zap.SugaredLogger) error {
-	// Get today's date and time
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.csv", today)
-	filePath := cfg.Output + filename
-
-	// Open the CSV file
-	csvFile, err := os.Create(filePath)
-	if err != nil {
-		return errors.New("error creating CSV file")
-	}
-	defer csvFile.Close()
-
-	metadataFile := csv.NewWriter(csvFile)
-	defer metadataFile.Flush()
-
-	// Write the header row
-	headerRow := append([]string{"id", "title"}, csvColumns...)
-	err = metadataFile.Write(headerRow)
-	if err != nil {
-		return errors.New("error writing header row")
-	}
-	numColumns := len(csvColumns)
-
-	// Loop through all assets
-	for _, asset := range a.Objects {
-		row := make([]string, numColumns+2) // +2 for id and title
-		row[0] = asset.ID
-		row[1] = asset.Title
-
-		for i := 0; i < numColumns; i++ {
-			metadataField := csvColumns[i]
-			metadataValue, ok := asset.Metadata[metadataField]
-			if ok {
-				switch v := metadataValue.(type) {
-				case []interface{}:
-					var values []string
-					for _, val := range v {
-						values = append(values, fmt.Sprintf("%v", val))
-					}
-					row[i+2] = strings.Join(values, ",")
-				default:
-					row[i+2] = fmt.Sprintf("%v", v)
-				}
-			}
-		}
-
-		err = metadataFile.Write(row)
-		if err != nil {
-			return errors.New("error writing row")
-		}
-	}
-
-	log.Info("File successfully saved to", filePath)
-	return nil
+	return csvColumnsName, csvColumnsLabel, nil
 }

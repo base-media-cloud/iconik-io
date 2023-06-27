@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/model"
 	"go.uber.org/zap"
 )
 
@@ -115,7 +115,7 @@ func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (i
 }
 
 func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
-	var a *assets.Assets
+	var a *model.Assets
 	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/?object_types=assets"
 	log.Infow(uri)
 	method := "GET"
@@ -205,4 +205,24 @@ func SchemaValidator(header, val string) (string, string, error) {
 	}
 
 	return header, val, nil
+}
+
+func RemoveNullJSON(m map[string]interface{}) map[string]interface{} {
+	for k, v := range m {
+		if v == nil {
+			delete(m, k)
+			continue
+		}
+		switch val := v.(type) {
+		case map[string]interface{}:
+			m[k] = RemoveNullJSON(val)
+		case []interface{}:
+			for i := 0; i < len(val); i++ {
+				if _, ok := val[i].(map[string]interface{}); ok {
+					val[i] = RemoveNullJSON(val[i].(map[string]interface{}))
+				}
+			}
+		}
+	}
+	return m
 }
