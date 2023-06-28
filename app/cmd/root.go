@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"flag"
-	"log"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
@@ -29,7 +28,7 @@ var (
 func Execute(log *zap.SugaredLogger) error {
 
 	// Parse the flags entered
-	err := argParse()
+	err := argParse(log)
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,7 @@ func Execute(log *zap.SugaredLogger) error {
 	return nil
 }
 
-func argParse() error {
+func argParse(log *zap.SugaredLogger) error {
 	flag.StringVar(&cmds.IconikURL, "iconik-url", "https://preview.iconik.cloud", "iconik URL")
 	flag.StringVar(&cmds.AppID, "app-id", "", "iconik Application ID")
 	flag.StringVar(&cmds.AuthToken, "auth-token", "", "iconik Authentication token")
@@ -96,12 +95,12 @@ func argParse() error {
 	// Construct config struct from command line args
 	constructConfig(&cmds)
 
-	err := validate.CheckAppIDAuthTokenCollectionID(&cfg)
+	err := validate.CheckAppIDAuthTokenCollectionID(&cfg, log)
 	if err != nil {
 		return err
 	}
 
-	err = validate.CheckMetadataID(&cfg)
+	err = validate.CheckMetadataID(&cfg, log)
 	if err != nil {
 		return err
 	}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/web"
 )
 
 func ReadCSVFile(cfg *config.Conf, log *zap.SugaredLogger) error {
@@ -151,36 +152,14 @@ func ReadCSVFile(cfg *config.Conf, log *zap.SugaredLogger) error {
 
 // updateTitle updates the title for the given asset ID.
 func updateTitle(cfg *config.Conf, assetID string, title map[string]string, log *zap.SugaredLogger) error {
-	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	log.Infow(uri)
-	method := "PATCH"
 
 	requestBody, err := json.Marshal(title)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	client := &http.Client{}
-	req, err := http.NewRequest(method, uri, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("App-ID", cfg.AppID)
-	req.Header.Add("Auth-Token", cfg.AuthToken)
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	_, err = io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
+	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
+	res, _, err := web.GetResponseBody("PATCH", uri, bytes.NewBuffer(requestBody), cfg, log)
 
 	if res.StatusCode == 200 {
 		log.Info("Successfully updated title name for asset ", assetID)
@@ -196,33 +175,13 @@ func updateTitle(cfg *config.Conf, assetID string, title map[string]string, log 
 // updateMetadata updates the metadata for the given asset ID.
 func updateMetadata(cfg *config.Conf, assetID string, metadata map[string]interface{}, log *zap.SugaredLogger) error {
 
-	uri := cfg.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + cfg.ViewID + "/"
-	log.Infow(uri)
-	method := "PUT"
-
 	requestBody, err := json.Marshal(metadata)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	client := &http.Client{}
-	req, err := http.NewRequest(method, uri, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("App-ID", cfg.AppID)
-	req.Header.Add("Auth-Token", cfg.AuthToken)
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	_, err = io.ReadAll(res.Body)
+	uri := cfg.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + cfg.ViewID + "/"
+	res, _, err := web.GetResponseBody("PUT", uri, bytes.NewBuffer(requestBody), cfg, log)
 	if err != nil {
 		return err
 	}
