@@ -1,4 +1,4 @@
-package validate
+package iconikio
 
 import (
 	"encoding/json"
@@ -6,17 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-
-	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/model"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/web"
-	"go.uber.org/zap"
 )
 
-func CheckAppIDAuthTokenCollectionID(cfg *config.Conf, log *zap.SugaredLogger) error {
+// CheckAppIDAuthTokenCollectionID validates the App ID, Auth Token and Collection ID,
+// and returns any errors to the user via the command line.
+func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
 
-	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/"
-	res, _, err := web.GetResponseBody("GET", uri, nil, cfg, log)
+	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.cfg.CollectionID + "/contents/"
+	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
 	if err != nil {
 		return err
 	}
@@ -32,10 +29,12 @@ func CheckAppIDAuthTokenCollectionID(cfg *config.Conf, log *zap.SugaredLogger) e
 	return nil
 }
 
-func CheckMetadataID(cfg *config.Conf, log *zap.SugaredLogger) error {
+// CheckMetadataID validates the metadata view ID provided, and returns any errors to the user
+// via the command line.
+func (i *Iconik) CheckMetadataID() error {
 
-	uri := cfg.IconikURL + "/API/metadata/v1/views/" + cfg.ViewID
-	res, _, err := web.GetResponseBody("GET", uri, nil, cfg, log)
+	uri := i.IconikClient.cfg.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.cfg.ViewID
+	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
 	if err != nil {
 		return err
 	}
@@ -49,10 +48,12 @@ func CheckMetadataID(cfg *config.Conf, log *zap.SugaredLogger) error {
 	return nil
 }
 
-func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
+// CheckAssetbyID validates the asset ID provided, and returns any errors to the user via
+// the command line.
+func (i *Iconik) CheckAssetbyID(assetID string) (int, error) {
 
-	uri := cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	res, _, err := web.GetResponseBody("GET", uri, nil, cfg, log)
+	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/assets/" + assetID
+	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
 	if err != nil {
 		return res.StatusCode, err
 	}
@@ -66,10 +67,12 @@ func CheckAssetbyID(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (i
 	return res.StatusCode, nil
 }
 
-func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.SugaredLogger) (int, error) {
-	var a *model.Assets
-	uri := cfg.IconikURL + "/API/assets/v1/collections/" + cfg.CollectionID + "/contents/"
-	res, resBody, err := web.GetResponseBody("GET", uri, nil, cfg, log)
+// CheckAssetExistInCollection checks the asset ID against the collection ID provided, and
+// returns any errors to the user via the command line.
+func (i *Iconik) CheckAssetExistInCollection(assetID string) (int, error) {
+	var a *Asset
+	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.cfg.CollectionID + "/contents/"
+	res, resBody, err := GetResponseBody("GET", uri, nil, i.IconikClient)
 	if err != nil {
 		return res.StatusCode, err
 	}
@@ -79,8 +82,8 @@ func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.Suga
 		return res.StatusCode, err
 	}
 
-	for _, asset := range a.Objects {
-		if asset.ID == assetID {
+	for _, object := range a.Objects {
+		if object.ID == assetID {
 			return res.StatusCode, nil
 		}
 	}
@@ -88,9 +91,11 @@ func CheckAssetExistInCollection(assetID string, cfg *config.Conf, log *zap.Suga
 	return res.StatusCode, nil
 }
 
+// SchemaValidator checks values in the CSV against the matching headers, to see if they
+// match the given criteria.
 func SchemaValidator(header, val string) (string, string, error) {
 
-	if header == "Signed off" || header == "Archived" || header == "Can not be share" || header == "bmc_sapProductAssetOnly" {
+	if header == "Signed off" || header == "Archived" || header == "Can not be share" || header == "SAP Product Asset" {
 		if val == "TRUE" {
 			val = "true"
 		} else if val == "FALSE" {
@@ -139,6 +144,7 @@ func SchemaValidator(header, val string) (string, string, error) {
 	return header, val, nil
 }
 
+// RemoveNullJSON removes any null values from a JSON.
 func RemoveNullJSON(m map[string]interface{}) map[string]interface{} {
 	for k, v := range m {
 		if v == nil {

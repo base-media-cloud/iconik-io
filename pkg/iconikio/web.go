@@ -1,15 +1,14 @@
-package web
+package iconikio
 
 import (
 	"io"
+	"log"
 	"net/http"
-
-	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
-	"go.uber.org/zap"
 )
 
-func GetResponseBody(method, uri string, params io.Reader, cfg *config.Conf, log *zap.SugaredLogger) (*http.Response, []byte, error) {
-	log.Infow(uri)
+// GetResponseBody is a helper function for making API calls.
+func GetResponseBody(method, uri string, params io.Reader, c *Client) (*http.Response, []byte, error) {
+	log.Println(uri)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, uri, params)
@@ -17,8 +16,8 @@ func GetResponseBody(method, uri string, params io.Reader, cfg *config.Conf, log
 		return nil, nil, err
 	}
 
-	req.Header.Add("App-ID", cfg.AppID)
-	req.Header.Add("Auth-Token", cfg.AuthToken)
+	req.Header.Add("App-ID", c.cfg.AppID)
+	req.Header.Add("Auth-Token", c.cfg.AuthToken)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 

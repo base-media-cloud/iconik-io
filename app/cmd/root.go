@@ -2,33 +2,54 @@ package cmd
 
 import (
 	"flag"
+	"log"
 
-	"github.com/base-media-cloud/pd-iconik-io-rd/app/services/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/assets"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/reader"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/validate"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/logger"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-type CMDArgs struct {
-	IconikURL    string
-	AppID        string
-	AuthToken    string
-	CollectionID string
-	ViewID       string
-	Input        string
-	Output       string
+var build = "develop"
+
+type Application struct {
+	log    *zap.SugaredLogger
+	Iconik iconikio.IconikRepo
 }
 
-var (
-	cfg  config.Conf
-	cmds CMDArgs
-)
+func Execute() error {
 
-func Execute(log *zap.SugaredLogger) error {
+	app := Application{}
 
-	// Parse the flags entered
-	err := argParse(log)
+	log, err := logger.New("PD-ICONIK-IO-RD")
+	if err != nil {
+		return err
+	}
+	defer log.Sync()
+
+	log.Infow("starting service", zapcore.Field{
+		Key:    "build",
+		Type:   zapcore.StringType,
+		String: build,
+	})
+	defer log.Infow("shutdown complete")
+	app.log = log
+
+	cfg, err := argParse()
+	if err != nil {
+		return err
+	}
+
+	iconikClient := iconikio.New(cfg)
+
+	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}
+
+	err = app.Iconik.CheckAppIDAuthTokenCollectionID()
+	if err != nil {
+		return err
+	}
+
+	err = app.Iconik.CheckMetadataID()
 	if err != nil {
 		return err
 	}
@@ -37,19 +58,19 @@ func Execute(log *zap.SugaredLogger) error {
 		// User has chosen CSV output
 
 		// Get Assets
-		a, err := assets.GetCollectionAssets(&cfg, log)
+		err = app.Iconik.GetCollectionAssets()
 		if err != nil {
 			return err
 		}
 
 		// Get CSV Headers
-		columnsName, columnsLabel, err := assets.GetCSVColumnsFromView(&cfg, log)
+		columnsName, columnsLabel, err := app.Iconik.GetCSVColumnsFromView()
 		if err != nil {
 			return err
 		}
 
 		// Build CSV and output
-		err = a.BuildCSVFile(&cfg, columnsName, columnsLabel, log)
+		err = app.Iconik.BuildCSVFile(columnsName, columnsLabel)
 		if err != nil {
 			return err
 		}
@@ -57,7 +78,7 @@ func Execute(log *zap.SugaredLogger) error {
 
 	if cfg.Input != "" {
 		// User has chosen CSV input
-		err := reader.ReadCSVFile(&cfg, log)
+		err := app.Iconik.ReadCSVFile()
 		if err != nil {
 			return err
 		}
@@ -66,55 +87,34 @@ func Execute(log *zap.SugaredLogger) error {
 	return nil
 }
 
-func argParse(log *zap.SugaredLogger) error {
-	flag.StringVar(&cmds.IconikURL, "iconik-url", "https://preview.iconik.cloud", "iconik URL")
-	flag.StringVar(&cmds.AppID, "app-id", "", "iconik Application ID")
-	flag.StringVar(&cmds.AuthToken, "auth-token", "", "iconik Authentication token")
-	flag.StringVar(&cmds.CollectionID, "collection-id", "", "iconik Collection ID")
-	flag.StringVar(&cmds.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
-	flag.StringVar(&cmds.Input, "input", "", "Input mode - requires path to input CSV file")
-	flag.StringVar(&cmds.Output, "output", "", "Output mode - requires path to save CSV file")
+func argParse() (*iconikio.Config, error) {
+
+	var cfg iconikio.Config
+
+	flag.StringVar(&cfg.IconikURL, "iconik-url", "https://preview.iconik.cloud", "the iconik URL (default https://preview.iconik.cloud)")
+	flag.StringVar(&cfg.AppID, "app-id", "", "iconik Application ID")
+	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
+	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
+	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
+	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
+	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
 	flag.Parse()
 
-	if cmds.AppID == "" {
+	if cfg.AppID == "" {
 		log.Fatal("No App-Id provided")
 	}
-	if cmds.AuthToken == "" {
+	if cfg.AuthToken == "" {
 		log.Fatal("No Auth-Token provided")
 	}
-	if cmds.CollectionID == "" {
+	if cfg.CollectionID == "" {
 		log.Fatal("No Collection ID provided")
 	}
-	if cmds.ViewID == "" {
+	if cfg.ViewID == "" {
 		log.Fatal("No Metadata View ID provided")
 	}
-	if cmds.Input == "" && cmds.Output == "" {
+	if cfg.Input == "" && cfg.Output == "" {
 		log.Fatal("Neither input or output mode selected. Please select one.")
 	}
 
-	// Construct config struct from command line args
-	constructConfig(&cmds)
-
-	err := validate.CheckAppIDAuthTokenCollectionID(&cfg, log)
-	if err != nil {
-		return err
-	}
-
-	err = validate.CheckMetadataID(&cfg, log)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func constructConfig(args *CMDArgs) {
-	cfg.IconikURL = args.IconikURL
-	cfg.AppID = args.AppID
-	cfg.AuthToken = args.AuthToken
-	cfg.CollectionID = args.CollectionID
-	cfg.ViewID = args.ViewID
-	cfg.Input = args.Input
-	cfg.Output = args.Output
+	return &cfg, nil
 }
