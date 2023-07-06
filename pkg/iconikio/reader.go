@@ -18,7 +18,7 @@ import (
 // ReadCSVFile reads and validates the CSV file provided.
 func (i *Iconik) ReadCSVFile() error {
 
-	csvFile, err := os.Open(i.IconikClient.cfg.Input)
+	csvFile, err := os.Open(i.IconikClient.Config.Input)
 	if err != nil {
 		return errors.New("error opening CSV file")
 	}
@@ -112,14 +112,14 @@ func (i *Iconik) ReadCSVFile() error {
 				}
 			}
 		}
-		err = updateTitle(i.IconikClient, row[0], title)
+		err = i.updateTitle(row[0], title)
 		if err != nil {
 			return err
 		}
 
 		metadata["metadata_values"] = metadataValues
 
-		err = updateMetadata(i.IconikClient, row[0], metadata)
+		err = i.updateMetadata(row[0], metadata)
 		if err != nil {
 			return err
 		}
@@ -129,15 +129,21 @@ func (i *Iconik) ReadCSVFile() error {
 }
 
 // updateTitle updates the title for the given asset ID.
-func updateTitle(c *Client, assetID string, title map[string]string) error {
+func (i *Iconik) updateTitle(assetID string, title map[string]string) error {
 
 	requestBody, err := json.Marshal(title)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	uri := c.cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	res, _, err := GetResponseBody("PATCH", uri, bytes.NewBuffer(requestBody), c)
+	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/assets/" + assetID
+
+	uri, err := i.joinURL("asset", assetID, 1)
+	if err != nil {
+		return err
+	}
+
+	res, _, err := i.getResponseBody("PATCH", uri.String(), bytes.NewBuffer(requestBody))
 
 	if res.StatusCode == 200 {
 		log.Println("Successfully updated title name for asset ", assetID)
@@ -151,15 +157,21 @@ func updateTitle(c *Client, assetID string, title map[string]string) error {
 }
 
 // updateMetadata updates the metadata for the given asset ID.
-func updateMetadata(c *Client, assetID string, metadata map[string]interface{}) error {
+func (i *Iconik) updateMetadata(assetID string, metadata map[string]interface{}) error {
 
 	requestBody, err := json.Marshal(metadata)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	uri := c.cfg.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + c.cfg.ViewID + "/"
-	res, _, err := GetResponseBody("PUT", uri, bytes.NewBuffer(requestBody), c)
+	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + i.IconikClient.Config.ViewID + "/"
+
+	uri, err := i.joinURL("metadataView", assetID, 1)
+	if err != nil {
+		return err
+	}
+
+	res, _, err := i.getResponseBody("PUT", uri.String(), bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err
 	}

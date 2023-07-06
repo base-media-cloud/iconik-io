@@ -20,13 +20,13 @@ func (i *Iconik) GetCollectionAssets() error {
 	searchDoc := map[string]interface{}{
 		"doc_types":        []string{"assets"},
 		"query":            "",
-		"metadata_view_id": i.IconikClient.cfg.ViewID,
+		"metadata_view_id": i.IconikClient.Config.ViewID,
 		"filter": map[string]interface{}{
 			"operator": "AND",
 			"terms": []map[string]interface{}{
 				{
 					"name":  "in_collections",
-					"value": i.IconikClient.cfg.CollectionID,
+					"value": i.IconikClient.Config.CollectionID,
 				},
 			},
 		},
@@ -37,8 +37,12 @@ func (i *Iconik) GetCollectionAssets() error {
 		return errors.New("error marshaling request body")
 	}
 
-	uri := i.IconikClient.cfg.IconikURL + "/API/search/v1/search/"
-	_, resBody, err := GetResponseBody("POST", uri, bytes.NewBuffer(requestBody), i.IconikClient)
+	uri, err := i.joinURL("search", "", 0)
+	if err != nil {
+		return err
+	}
+
+	_, resBody, err := i.getResponseBody("POST", uri.String(), bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func (i *Iconik) GetCollectionAssets() error {
 		return err
 	}
 
-	dataNoNull := RemoveNullJSON(data)
+	dataNoNull := removeNullJSON(data)
 
 	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
 	if err != nil {
@@ -72,8 +76,14 @@ func (i *Iconik) GetCSVColumnsFromView() ([]string, []string, error) {
 	var csvColumnsName []string
 	var csvColumnsLabel []string
 
-	uri := i.IconikClient.cfg.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.cfg.ViewID
-	_, resBody, err := GetResponseBody("GET", uri, nil, i.IconikClient)
+	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.Config.ViewID
+
+	uri, err := i.joinURL("metadataView", "", 0)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, resBody, err := i.getResponseBody("GET", uri.String(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,7 +94,7 @@ func (i *Iconik) GetCSVColumnsFromView() ([]string, []string, error) {
 		return nil, nil, err
 	}
 
-	dataNoNull := RemoveNullJSON(data)
+	dataNoNull := removeNullJSON(data)
 
 	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
 	if err != nil {
@@ -110,7 +120,7 @@ func (i *Iconik) BuildCSVFile(csvColumnsName []string, csvColumnsLabel []string)
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
-	filePath := i.IconikClient.cfg.Output + filename
+	filePath := i.IconikClient.Config.Output + filename
 
 	// Open the CSV file
 	csvFile, err := os.Create(filePath)

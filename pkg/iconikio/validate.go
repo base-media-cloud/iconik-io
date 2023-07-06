@@ -12,8 +12,14 @@ import (
 // and returns any errors to the user via the command line.
 func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
 
-	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.cfg.CollectionID + "/contents/"
-	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
+	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.Config.CollectionID + "/contents/"
+
+	uri, err := i.joinURL("collection", "", 0)
+	if err != nil {
+		return err
+	}
+
+	res, _, err := i.getResponseBody("GET", uri.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -33,8 +39,14 @@ func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
 // via the command line.
 func (i *Iconik) CheckMetadataID() error {
 
-	uri := i.IconikClient.cfg.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.cfg.ViewID
-	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
+	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.Config.ViewID
+
+	uri, err := i.joinURL("metadataView", "", 0)
+	if err != nil {
+		return err
+	}
+
+	res, _, err := i.getResponseBody("GET", uri.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -52,10 +64,16 @@ func (i *Iconik) CheckMetadataID() error {
 // the command line.
 func (i *Iconik) CheckAssetbyID(assetID string) (int, error) {
 
-	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/assets/" + assetID
-	res, _, err := GetResponseBody("GET", uri, nil, i.IconikClient)
+	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/assets/" + assetID
+
+	uri, err := i.joinURL("asset", "", 0)
 	if err != nil {
-		return res.StatusCode, err
+		return http.StatusNotFound, err
+	}
+
+	res, _, err := i.getResponseBody("GET", uri.String(), nil)
+	if err != nil {
+		return http.StatusNotFound, err
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -70,9 +88,16 @@ func (i *Iconik) CheckAssetbyID(assetID string) (int, error) {
 // CheckAssetExistInCollection checks the asset ID against the collection ID provided, and
 // returns any errors to the user via the command line.
 func (i *Iconik) CheckAssetExistInCollection(assetID string) (int, error) {
+
 	var a *Asset
-	uri := i.IconikClient.cfg.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.cfg.CollectionID + "/contents/"
-	res, resBody, err := GetResponseBody("GET", uri, nil, i.IconikClient)
+
+	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.Config.CollectionID + "/contents/"
+	uri, err := i.joinURL("collection", "", 0)
+	if err != nil {
+		return http.StatusNotFound, err
+	}
+
+	res, resBody, err := i.getResponseBody("GET", uri.String(), nil)
 	if err != nil {
 		return res.StatusCode, err
 	}
@@ -142,25 +167,4 @@ func SchemaValidator(header, val string) (string, string, error) {
 	}
 
 	return header, val, nil
-}
-
-// RemoveNullJSON removes any null values from a JSON.
-func RemoveNullJSON(m map[string]interface{}) map[string]interface{} {
-	for k, v := range m {
-		if v == nil {
-			delete(m, k)
-			continue
-		}
-		switch val := v.(type) {
-		case map[string]interface{}:
-			m[k] = RemoveNullJSON(val)
-		case []interface{}:
-			for i := 0; i < len(val); i++ {
-				if _, ok := val[i].(map[string]interface{}); ok {
-					val[i] = RemoveNullJSON(val[i].(map[string]interface{}))
-				}
-			}
-		}
-	}
-	return m
 }

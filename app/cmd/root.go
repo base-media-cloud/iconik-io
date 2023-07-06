@@ -2,61 +2,62 @@ package cmd
 
 import (
 	"flag"
-	"log"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var build = "develop"
+var (
+	app   Application
+	build = "develop"
+)
 
 type Application struct {
-	log    *zap.SugaredLogger
+	Logger *zap.SugaredLogger
 	Iconik iconikio.IconikRepo
 }
 
-func Execute() error {
+func Execute(l *zap.SugaredLogger) error {
 
-	app := Application{}
-
-	log, err := logger.New("PD-ICONIK-IO-RD")
-	if err != nil {
-		return err
-	}
-	defer log.Sync()
-
-	log.Infow("starting service", zapcore.Field{
+	// Add logger to part of our Application struct and log
+	app.Logger = l
+	app.Logger.Infow("starting service", zapcore.Field{
 		Key:    "build",
 		Type:   zapcore.StringType,
 		String: build,
 	})
-	defer log.Infow("shutdown complete")
-	app.log = log
+	defer app.Logger.Infow("shutdown complete")
 
+	// Parse command line flags, store in Config struct
 	cfg, err := argParse()
 	if err != nil {
 		return err
 	}
 
+	// Create new Iconik Client struct
 	iconikClient := iconikio.New(cfg)
 
+	// Populate Iconik URL struct
+	iconikClient.NewAPIConfig()
+
+	// Attach Iconik Client to Iconik Repo interface
 	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}
 
+	// Validate App ID, Auth Token and Collection ID
 	err = app.Iconik.CheckAppIDAuthTokenCollectionID()
 	if err != nil {
 		return err
 	}
 
+	// Validate Metadata ID
 	err = app.Iconik.CheckMetadataID()
 	if err != nil {
 		return err
 	}
 
 	if cfg.Output != "" {
-		// User has chosen CSV output
-
+		// User has chosen CSV output:
 		// Get Assets
 		err = app.Iconik.GetCollectionAssets()
 		if err != nil {
@@ -77,7 +78,8 @@ func Execute() error {
 	}
 
 	if cfg.Input != "" {
-		// User has chosen CSV input
+		// User has chosen CSV input:
+		// Read CSV file and update metadata and title on Iconik API
 		err := app.Iconik.ReadCSVFile()
 		if err != nil {
 			return err
@@ -101,19 +103,19 @@ func argParse() (*iconikio.Config, error) {
 	flag.Parse()
 
 	if cfg.AppID == "" {
-		log.Fatal("No App-Id provided")
+		app.Logger.Fatalw("No App-Id provided")
 	}
 	if cfg.AuthToken == "" {
-		log.Fatal("No Auth-Token provided")
+		app.Logger.Fatalw("No Auth-Token provided")
 	}
 	if cfg.CollectionID == "" {
-		log.Fatal("No Collection ID provided")
+		app.Logger.Fatalw("No Collection ID provided")
 	}
 	if cfg.ViewID == "" {
-		log.Fatal("No Metadata View ID provided")
+		app.Logger.Fatalw("No Metadata View ID provided")
 	}
 	if cfg.Input == "" && cfg.Output == "" {
-		log.Fatal("Neither input or output mode selected. Please select one.")
+		app.Logger.Fatalw("Neither input or output mode selected. Please select one.")
 	}
 
 	return &cfg, nil
