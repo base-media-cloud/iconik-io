@@ -8,6 +8,65 @@ import (
 	"net/url"
 )
 
+func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error) {
+
+	csvHeaderLabels := csvData[0]
+
+	var matchingIconikHeaderNames []string
+	var matchingIconikHeaderLabels []string
+	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "id")
+	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "title")
+	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "id")
+	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "title")
+
+	var nonMatchingHeaders []string
+
+	for index, csvHeaderLabel := range csvHeaderLabels {
+		if index > 1 {
+			found := false
+			for _, field := range i.IconikClient.Metadata.ViewFields {
+					if csvHeaderLabel == field.Label {
+							matchingIconikHeaderNames = append(matchingIconikHeaderNames, field.Name)
+							matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, field.Label)
+							found = true
+							break
+					}
+			}
+			if !found {
+				nonMatchingHeaders = append(nonMatchingHeaders, csvHeaderLabel)
+			}
+		}
+	}
+
+	var matchingValues [][]string
+	matchingValues = append(matchingValues, matchingIconikHeaderNames)
+	matchingValues = append(matchingValues, matchingIconikHeaderLabels)
+
+	for i, row := range csvData {
+		if i > 0 {
+			var matchingRow []string
+			for i, csvHeaderLabel := range csvHeaderLabels {
+					if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
+							matchingRow = append(matchingRow, row[i])
+					}
+			}
+			matchingValues = append(matchingValues, matchingRow)
+		}
+	}
+
+	return matchingValues, nonMatchingHeaders, nil
+
+}
+
+func contains(slice []string, value string) bool {
+	for _, item := range slice {
+			if item == value {
+					return true
+			}
+	}
+	return false
+}
+
 func (i *Iconik) getResponseBody(method, uri string, params io.Reader) (*http.Response, []byte, error) {
 	log.Println(uri)
 

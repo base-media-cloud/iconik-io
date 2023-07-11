@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -26,102 +25,120 @@ func (i *Iconik) ReadCSVFile() error {
 
 	csvReader := csv.NewReader(csvFile)
 
-	fields, err := csvReader.Read()
+	csvData, err := csvReader.ReadAll()
 	if err != nil {
 		return errors.New("error reading CSV file")
 	}
 
-	if fields[0] != "id" || fields[1] != "title" {
+	csvHeaders := csvData[0]
+
+	if csvHeaders[0] != "id" || csvHeaders[1] != "title" {
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
 
-	csvColumnsName, _, err := i.GetCSVColumnsFromView()
+	_, _, err = i.GetCSVColumnsFromView()
 	if err != nil {
 		return err
 	}
-	csvColumnsName = append([]string{"title"}, csvColumnsName...)
-	csvColumnsName = append([]string{"id"}, csvColumnsName...)
+	
+	matchingCSV, nonMatchingHeaders, err := i.matchCSVtoAPI(csvData)
+	if err != nil {
+		return err
+	}
 
-	for {
-		row, err := csvReader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return errors.New("error reading CSV file")
+	if len(nonMatchingHeaders) > 0 {
+		fmt.Println("Some columns from the CSV provided have not been included in the upload to Iconik, as they are not part of the metadata view provided. Please see below for the headers of the columns not included:")
+		fmt.Println()
+		for _, nonMatchingHeader := range nonMatchingHeaders {
+			fmt.Println(nonMatchingHeader)
 		}
+	}
 
-		title := make(map[string]string)
-		metadata := make(map[string]interface{})
-		metadataValues := make(map[string]interface{})
+	matchingCSVHeaderNames := matchingCSV[0]
+	matchingCSVHeaderLabels := matchingCSV[1]
 
-		for count, value := range row {
-			if count == 0 {
-				_, err := uuid.Parse(value)
-				if err != nil {
-					return errors.New("not a valid asset ID")
-				}
+	for index, row := range matchingCSV {
+		if index > 1 {
 
-				_, err = i.CheckAssetbyID(value)
-				if err != nil {
-					return fmt.Errorf("error %s", err)
-				}
+			title := make(map[string]string)
+			metadata := make(map[string]interface{})
+			metadataValues := make(map[string]interface{})
 
-				code, err := i.CheckAssetExistInCollection(value)
-				if err != nil {
-					return err
-				}
-				if code == http.StatusOK {
-					continue
-				} else {
-					return errors.New("asset does not exist in given Collection ID")
-				}
-
-			} else if count == 1 {
-				title["title"] = value
-			} else if count > 1 {
-				header := csvColumnsName[count]
-				headerLabel := fields[count]
-
-				if _, ok := metadataValues[header]; !ok {
-					metadataValues[header] = map[string]interface{}{
-						"field_values": []map[string]interface{}{},
+			for count, value := range row {
+				if count == 0 {
+					// it's the asset id
+					// check asset id is valid
+					_, err := uuid.Parse(value)
+					if err != nil {
+						return errors.New("not a valid asset ID")
 					}
-				}
-
-				valueArr := strings.Split(value, ",")
-				if len(valueArr) > 0 {
-					for _, val := range valueArr {
-
-						_, val, err = SchemaValidator(headerLabel, val)
-						if err != nil {
-							return err
+	
+					_, err = i.CheckAssetbyID(value)
+					if err != nil {
+						return fmt.Errorf("error %s", err)
+					}
+	
+					code, err := i.CheckAssetExistInCollection(value)
+					if err != nil {
+						return err
+					}
+					if code == http.StatusOK {
+						continue
+					} else {
+						return errors.New("asset does not exist in given Collection ID")
+					}
+	
+				} else if count == 1 {
+					// it's the title of the asset
+					title["title"] = value
+				} else if count > 1 {
+					// this is where the rest of the headers start
+					headerName := matchingCSVHeaderNames[count]
+					headerLabel := matchingCSVHeaderLabels[count]
+	
+					if _, ok := metadataValues[headerName]; !ok {
+						metadataValues[headerName] = map[string]interface{}{
+							"field_values": []map[string]interface{}{},
 						}
-
-						fieldValue := map[string]interface{}{
-							"value": val,
-						}
-
-						if val != "" {
-							fieldValues := metadataValues[header].(map[string]interface{})["field_values"].([]map[string]interface{})
-							fieldValues = append(fieldValues, fieldValue)
-							metadataValues[header].(map[string]interface{})["field_values"] = fieldValues
-						} else {
-							delete(metadataValues, header)
+					}
+	
+					valueArr := strings.Split(value, ",")
+					if len(valueArr) > 0 {
+						for _, val := range valueArr {
+	
+							_, val, err = SchemaValidator(headerLabel, val)
+							if err != nil {
+								return err
+							}
+	
+							fieldValue := map[string]interface{}{
+								"value": val,
+							}
+	
+							if val != "" {
+								fieldValues := metadataValues[headerName].(map[string]interface{})["field_values"].([]map[string]interface{})
+								fieldValues = append(fieldValues, fieldValue)
+								metadataValues[headerName].(map[string]interface{})["field_values"] = fieldValues
+							} else {
+								delete(metadataValues, headerName)
+							}
 						}
 					}
 				}
 			}
-		}
-		err = i.updateTitle(row[0], title)
-		if err != nil {
-			return err
-		}
 
-		metadata["metadata_values"] = metadataValues
+			err = i.updateTitle(row[0], title)
+			if err != nil {
+				return err
+			}
+	
+			metadata["metadata_values"] = metadataValues
+	
+			err = i.updateMetadata(row[0], metadata)
+			if err != nil {
+				return err
+			}
 
-		err = i.updateMetadata(row[0], metadata)
-		if err != nil {
-			return err
 		}
 	}
 
