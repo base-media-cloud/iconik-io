@@ -64,14 +64,8 @@ func Execute(l *zap.SugaredLogger) error {
 			return err
 		}
 
-		// Get CSV Headers
-		columnsName, columnsLabel, err := app.Iconik.GetCSVColumnsFromView()
-		if err != nil {
-			return err
-		}
-
 		// Build CSV and output
-		err = app.Iconik.BuildCSVFile(columnsName, columnsLabel)
+		err = app.Iconik.WriteCSVFile()
 		if err != nil {
 			return err
 		}

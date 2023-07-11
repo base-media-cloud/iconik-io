@@ -4,8 +4,8 @@ package iconikio
 
 type IconikRepo interface {
 	GetCollectionAssets() error
-	GetCSVColumnsFromView() ([]string, []string, error)
-	BuildCSVFile(csvColumnsName []string, csvColumnsLabel []string) error
+	GetMetadata() error
+	WriteCSVFile() error
 	ReadCSVFile() error
 	CheckAppIDAuthTokenCollectionID() error
 	CheckMetadataID() error

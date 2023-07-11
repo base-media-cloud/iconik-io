@@ -70,59 +70,47 @@ func (i *Iconik) GetCollectionAssets() error {
 	return nil
 }
 
-// GetCSVColumnsFromView gets a column list from a metadata view for our CSV file, returning a slice of Names, and a slice of Labels.
-func (i *Iconik) GetCSVColumnsFromView() ([]string, []string, error) {
-
-	var csvColumnsName []string
-	var csvColumnsLabel []string
-
-	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.Config.ViewID
+// GetMetadata gets the metadata using the given metadata view ID.
+func (i *Iconik) GetMetadata() error {
 
 	uri, err := i.joinURL("metadataView", "", 0)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	_, resBody, err := i.getResponseBody("GET", uri.String(), nil)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	var data map[string]interface{}
 	err = json.Unmarshal(resBody, &data)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	dataNoNull := removeNullJSON(data)
 
 	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	err = json.Unmarshal(jsonData, &i.IconikClient.Metadata)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	for _, field := range i.IconikClient.Metadata.ViewFields {
-		if field.Name != "__separator__" {
-			csvColumnsName = append(csvColumnsName, field.Name)
-			csvColumnsLabel = append(csvColumnsLabel, field.Label)
-		}
-	}
-
-	return csvColumnsName, csvColumnsLabel, nil
+	return nil
 }
 
-func (i *Iconik) BuildCSVFile(csvColumnsName []string, csvColumnsLabel []string) error {
+func (i *Iconik) WriteCSVFile() error {
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
 	filePath := i.IconikClient.Config.Output + filename
 
-	// Open the CSV file
+	// Create the CSV file
 	csvFile, err := os.Create(filePath)
 	if err != nil {
 		return errors.New("error creating CSV file")
@@ -131,6 +119,16 @@ func (i *Iconik) BuildCSVFile(csvColumnsName []string, csvColumnsLabel []string)
 
 	metadataFile := csv.NewWriter(csvFile)
 	defer metadataFile.Flush()
+
+	var csvColumnsName []string
+	var csvColumnsLabel []string
+
+	for _, field := range i.IconikClient.Metadata.ViewFields {
+		if field.Name != "__separator__" {
+			csvColumnsName = append(csvColumnsName, field.Name)
+			csvColumnsLabel = append(csvColumnsLabel, field.Label)
+		}
+	}
 
 	// Write the header row
 	headerRow := append([]string{"id", "title"}, csvColumnsLabel...)
