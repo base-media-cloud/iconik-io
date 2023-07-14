@@ -1,5 +1,7 @@
 package iconikio
 
+import "net/http"
+
 type Iconik struct {
 	IconikClient *Client
 }
@@ -91,38 +93,38 @@ func (c *Client) NewAPIConfig() {
 				map[string]interface{}{
 					"path":   []string{"/API/assets/v1/assets/"},
 					"path2":  []string{},
-					"method": "GET",
+					"method": http.MethodGet,
 				},
 				map[string]interface{}{
 					"path":   []string{"/API/assets/v1/assets/"},
 					"path2":  []string{},
-					"method": "PATCH",
+					"method": http.MethodPatch,
 				},
 			},
 			"collection": []interface{}{
 				map[string]interface{}{
 					"path":   []string{"/API/assets/v1/collections/", c.Config.CollectionID, "/contents/"},
 					"path2":  []string{},
-					"method": "GET",
+					"method": http.MethodGet,
 				},
 			},
 			"metadataView": []interface{}{
 				map[string]interface{}{
 					"path":   []string{"/API/metadata/v1/views/", c.Config.ViewID},
 					"path2":  []string{},
-					"method": "GET",
+					"method": http.MethodGet,
 				},
 				map[string]interface{}{
 					"path":   []string{"/API/metadata/v1/assets/"},
 					"path2":  []string{"/views/", c.Config.ViewID, "/"},
-					"method": "PUT",
+					"method": http.MethodPut,
 				},
 			},
 			"search": []interface{}{
 				map[string]interface{}{
 					"path":   []string{"/API/search/v1/search/"},
 					"path2":  []string{},
-					"method": "POST",
+					"method": http.MethodPost,
 				},
 			},
 		},
