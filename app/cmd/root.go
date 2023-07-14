@@ -56,6 +56,12 @@ func Execute(l *zap.SugaredLogger) error {
 		return err
 	}
 
+	// Get Metadata using given Metadata ID
+	err = app.Iconik.GetMetadata()
+	if err != nil {
+		return err
+	}
+
 	if cfg.Output != "" {
 		// User has chosen CSV output:
 		// Get Assets
