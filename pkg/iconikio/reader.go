@@ -40,13 +40,6 @@ func (i *Iconik) ReadCSVFile() error {
 	if csvHeaders[0] != "id" || csvHeaders[1] != "title" {
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
-
-	// add the metadata view fields to the Asset struct
-	// TODO: rewrite this function
-	err = i.GetMetadata()
-	if err != nil {
-		return err
-	}
 	
 	// get the slimmed down 2D slice that contains only the columns matched to the given metadata view 
 	matchingCSV, nonMatchingHeaders, err := i.matchCSVtoAPI(csvData)
