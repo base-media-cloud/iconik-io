@@ -60,22 +60,22 @@ type ViewField struct {
 }
 
 type IconikApi struct {
-	Scheme    string           `yaml:"scheme"`
-	Host      string           `yaml:"host"`
-	Endpoints *IconikEndpoints `yaml:"endpoints"`
+	Scheme    string
+	Host      string
+	Endpoints *IconikEndpoints
 }
 
 type IconikEndpoints struct {
-	Asset        []*Endpoint `yaml:"asset"`
-	Collection   []*Endpoint `yaml:"collection"`
-	MetadataView []*Endpoint `yaml:"metadata-view"`
-	Search       []*Endpoint `yaml:"search"`
+	Asset        []*Endpoint
+	Collection   []*Endpoint
+	MetadataView []*Endpoint
+	Search       []*Endpoint
 }
 
 type Endpoint struct {
-	Path   []string `yaml:"path"`
-	Path2  []string `yaml:"path2"`
-	Method string   `yaml:"method"`
+	Path   []string
+	Path2  []string
+	Method string
 }
 
 func New(cfg *Config) *Client {
