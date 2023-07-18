@@ -1,6 +1,10 @@
 package iconikio
 
-import "net/http"
+import (
+	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
+	"net/http"
+)
 
 type Iconik struct {
 	IconikClient *Client
@@ -12,7 +16,7 @@ type Client struct {
 	Config   *Config
 }
 
-// type Conf is the structure that holds the key variaables required
+// type Conf is the structure that holds the key variables required
 // in the execution of the service.
 type Config struct {
 	IconikURL    string
@@ -23,12 +27,6 @@ type Config struct {
 	Input        string
 	Output       string
 	APIConfig    *APIConfig
-}
-
-type APIConfig struct {
-	Scheme    string
-	Host      string
-	Endpoints map[string]interface{}
 }
 
 // Assets is the top level data structure that receives the unmarshalled payload
@@ -59,23 +57,27 @@ type ViewField struct {
 	Label string `json:"label"`
 }
 
-type IconikApi struct {
+type APIConfig struct {
 	Scheme    string
 	Host      string
 	Endpoints *IconikEndpoints
 }
 
 type IconikEndpoints struct {
-	Asset        []*Endpoint
-	Collection   []*Endpoint
-	MetadataView []*Endpoint
-	Search       []*Endpoint
+	Asset        *Endpoints
+	Collection   *Endpoints
+	MetadataView *Endpoints
+	Search       *Endpoints
 }
 
 type Endpoint struct {
-	Path   []string
-	Path2  []string
+	Path   string
+	Path2  string
 	Method string
+}
+
+type Endpoints struct {
+	Post, Get, Patch, Put, Delete *Endpoint
 }
 
 func New(cfg *Config) *Client {
@@ -84,47 +86,42 @@ func New(cfg *Config) *Client {
 	}
 }
 
-func (c *Client) NewAPIConfig() {
+func (c *Client) NewAPIConfig(appCfg config.Config) {
 	c.Config.APIConfig = &APIConfig{
 		Scheme: "https",
 		Host:   c.Config.IconikURL,
-		Endpoints: map[string]interface{}{
-			"asset": []interface{}{
-				map[string]interface{}{
-					"path":   []string{"/API/assets/v1/assets/"},
-					"path2":  []string{},
-					"method": http.MethodGet,
+		Endpoints: &IconikEndpoints{
+			Asset: &Endpoints{
+				Get: &Endpoint{
+					Path:   appCfg.AssetsPrefixURL,
+					Method: http.MethodGet,
 				},
-				map[string]interface{}{
-					"path":   []string{"/API/assets/v1/assets/"},
-					"path2":  []string{},
-					"method": http.MethodPatch,
+				Patch: &Endpoint{
+					Path:   appCfg.AssetsPrefixURL,
+					Method: http.MethodPatch,
 				},
 			},
-			"collection": []interface{}{
-				map[string]interface{}{
-					"path":   []string{"/API/assets/v1/collections/", c.Config.CollectionID, "/contents/"},
-					"path2":  []string{},
-					"method": http.MethodGet,
+			Collection: &Endpoints{
+				Get: &Endpoint{
+					Path:   fmt.Sprintf("%s%s/contents/", appCfg.CollectionPrefixURL, c.Config.CollectionID),
+					Method: http.MethodGet,
 				},
 			},
-			"metadataView": []interface{}{
-				map[string]interface{}{
-					"path":   []string{"/API/metadata/v1/views/", c.Config.ViewID},
-					"path2":  []string{},
-					"method": http.MethodGet,
+			MetadataView: &Endpoints{
+				Get: &Endpoint{
+					Path:   fmt.Sprintf("%s%s", appCfg.MetadataViewPrefixURL, c.Config.ViewID),
+					Method: http.MethodGet,
 				},
-				map[string]interface{}{
-					"path":   []string{"/API/metadata/v1/assets/"},
-					"path2":  []string{"/views/", c.Config.ViewID, "/"},
-					"method": http.MethodPut,
+				Put: &Endpoint{
+					Path:   appCfg.SearchPrefixURL,
+					Path2:  fmt.Sprintf("/views/%s/", c.Config.ViewID),
+					Method: http.MethodPut,
 				},
 			},
-			"search": []interface{}{
-				map[string]interface{}{
-					"path":   []string{"/API/search/v1/search/"},
-					"path2":  []string{},
-					"method": http.MethodPost,
+			Search: &Endpoints{
+				Post: &Endpoint{
+					Path:   appCfg.SearchPrefixURL,
+					Method: http.MethodPost,
 				},
 			},
 		},

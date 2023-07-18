@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ type Application struct {
 	Iconik iconikio.IconikRepo
 }
 
-func Execute(l *zap.SugaredLogger) error {
+func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 
 	// Add logger to part of our Application struct and log
 	app.Logger = l
@@ -39,7 +40,7 @@ func Execute(l *zap.SugaredLogger) error {
 	iconikClient := iconikio.New(cfg)
 
 	// Populate Iconik URL struct
-	iconikClient.NewAPIConfig()
+	iconikClient.NewAPIConfig(appCfg)
 
 	// Attach Iconik Client to Iconik Repo interface
 	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}

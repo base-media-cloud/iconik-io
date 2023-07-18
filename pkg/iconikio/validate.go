@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -12,14 +13,19 @@ import (
 // and returns any errors to the user via the command line.
 func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.Config.CollectionID + "/contents/"
-
-	uri, err := i.joinURL("collection", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := i.getResponseBody("GET", uri.String(), nil)
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -39,14 +45,19 @@ func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
 // via the command line.
 func (i *Iconik) CheckMetadataID() error {
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/views/" + i.IconikClient.Config.ViewID
-
-	uri, err := i.joinURL("metadataView", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := i.getResponseBody("GET", uri.String(), nil)
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Method, u.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -64,14 +75,19 @@ func (i *Iconik) CheckMetadataID() error {
 // the command line.
 func (i *Iconik) CheckAssetbyID(assetID string) (int, error) {
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/assets/" + assetID
-
-	uri, err := i.joinURL("asset", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Get.Path, assetID)
 	if err != nil {
 		return http.StatusNotFound, err
 	}
 
-	res, _, err := i.getResponseBody("GET", uri.String(), nil)
+	u, err := url.Parse(result)
+	if err != nil {
+		return http.StatusNotFound, err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Get.Method, u.String(), nil)
 	if err != nil {
 		return http.StatusNotFound, err
 	}
@@ -91,13 +107,19 @@ func (i *Iconik) CheckAssetExistInCollection(assetID string) (int, error) {
 
 	var a *Asset
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/collections/" + i.IconikClient.Config.CollectionID + "/contents/"
-	uri, err := i.joinURL("collection", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
 		return http.StatusNotFound, err
 	}
 
-	res, resBody, err := i.getResponseBody("GET", uri.String(), nil)
+	u, err := url.Parse(result)
+	if err != nil {
+		return http.StatusNotFound, err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
 	if err != nil {
 		return res.StatusCode, err
 	}
@@ -107,6 +129,7 @@ func (i *Iconik) CheckAssetExistInCollection(assetID string) (int, error) {
 		return res.StatusCode, err
 	}
 
+	// TODO: Look into this- returning status codes regardless
 	for _, object := range a.Objects {
 		if object.ID == assetID {
 			return res.StatusCode, nil

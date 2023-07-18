@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -40,8 +41,8 @@ func (i *Iconik) ReadCSVFile() error {
 	if csvHeaders[0] != "id" || csvHeaders[1] != "title" {
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
-	
-	// get the slimmed down 2D slice that contains only the columns matched to the given metadata view 
+
+	// get the slimmed down 2D slice that contains only the columns matched to the given metadata view
 	matchingCSV, nonMatchingHeaders, err := i.matchCSVtoAPI(csvData)
 	if err != nil {
 		return err
@@ -79,13 +80,13 @@ func (i *Iconik) ReadCSVFile() error {
 					if err != nil {
 						return errors.New("not a valid asset ID")
 					}
-	
+
 					// check asset id exists on Iconik
 					_, err = i.CheckAssetbyID(value)
 					if err != nil {
 						return fmt.Errorf("error %s", err)
 					}
-	
+
 					// check asset id exists in given collection id
 					code, err := i.CheckAssetExistInCollection(value)
 					if err != nil {
@@ -96,7 +97,7 @@ func (i *Iconik) ReadCSVFile() error {
 					} else {
 						return errors.New("asset does not exist in given Collection ID")
 					}
-	
+
 				} else if count == 1 {
 					// it's the title of the asset
 					title["title"] = value
@@ -104,27 +105,27 @@ func (i *Iconik) ReadCSVFile() error {
 					// this is where the rest of the headers start
 					headerName := matchingCSVHeaderNames[count]
 					headerLabel := matchingCSVHeaderLabels[count]
-	
+
 					if _, ok := metadataValues[headerName]; !ok {
 						metadataValues[headerName] = map[string]interface{}{
 							"field_values": []map[string]interface{}{},
 						}
 					}
-	
+
 					// if there are words separated by spaces inside the field, split with a comma
 					valueArr := strings.Split(value, ",")
 					if len(valueArr) > 0 {
 						for _, val := range valueArr {
-	
+
 							_, val, err = SchemaValidator(headerLabel, val)
 							if err != nil {
 								return err
 							}
-	
+
 							fieldValue := map[string]interface{}{
 								"value": val,
 							}
-	
+
 							if val != "" {
 								fieldValues := metadataValues[headerName].(map[string]interface{})["field_values"].([]map[string]interface{})
 								fieldValues = append(fieldValues, fieldValue)
@@ -142,9 +143,9 @@ func (i *Iconik) ReadCSVFile() error {
 			if err != nil {
 				return err
 			}
-	
+
 			metadata["metadata_values"] = metadataValues
-	
+
 			// update the remaining metadata for this particular asset/row
 			err = i.updateMetadata(row[0], metadata)
 			if err != nil {
@@ -165,14 +166,19 @@ func (i *Iconik) updateTitle(assetID string, title map[string]string) error {
 		return errors.New("error marshaling JSON")
 	}
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/assets/v1/assets/" + assetID
-
-	uri, err := i.joinURL("asset", assetID, 1)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Path, assetID)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := i.getResponseBody("PATCH", uri.String(), bytes.NewBuffer(requestBody))
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
 
 	if res.StatusCode == 200 {
 		log.Println("Successfully updated title name for asset ", assetID)
@@ -193,14 +199,19 @@ func (i *Iconik) updateMetadata(assetID string, metadata map[string]interface{})
 		return errors.New("error marshaling JSON")
 	}
 
-	// uri := i.IconikClient.Config.IconikURL + "/API/metadata/v1/assets/" + assetID + "/views/" + i.IconikClient.Config.ViewID + "/"
-
-	uri, err := i.joinURL("metadataView", assetID, 1)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path, assetID, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path2)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := i.getResponseBody("PUT", uri.String(), bytes.NewBuffer(requestBody))
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Method, u.String(), bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err
 	}
@@ -209,6 +220,7 @@ func (i *Iconik) updateMetadata(assetID string, metadata map[string]interface{})
 		log.Println("Successfully updated metadata for asset ", assetID)
 	} else {
 		log.Println("Error updating metadata for asset ", assetID)
+		log.Println(string(resBody))
 		log.Println(fmt.Sprint(res.StatusCode))
 		return err
 	}

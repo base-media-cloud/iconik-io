@@ -1,12 +1,12 @@
 package iconikio
 
 import (
-	"bytes"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -17,32 +17,19 @@ func (i *Iconik) GetCollectionAssets() error {
 
 	var a *Asset
 
-	searchDoc := map[string]interface{}{
-		"doc_types":        []string{"assets"},
-		"query":            "",
-		"metadata_view_id": i.IconikClient.Config.ViewID,
-		"filter": map[string]interface{}{
-			"operator": "AND",
-			"terms": []map[string]interface{}{
-				{
-					"name":  "in_collections",
-					"value": i.IconikClient.Config.CollectionID,
-				},
-			},
-		},
-	}
-
-	requestBody, err := json.Marshal(searchDoc)
-	if err != nil {
-		return errors.New("error marshaling request body")
-	}
-
-	uri, err := i.joinURL("search", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
 		return err
 	}
 
-	_, resBody, err := i.getResponseBody("POST", uri.String(), bytes.NewBuffer(requestBody))
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -73,12 +60,19 @@ func (i *Iconik) GetCollectionAssets() error {
 // GetMetadata gets the metadata using the given metadata view ID.
 func (i *Iconik) GetMetadata() error {
 
-	uri, err := i.joinURL("metadataView", "", 0)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path)
 	if err != nil {
 		return err
 	}
 
-	_, resBody, err := i.getResponseBody("GET", uri.String(), nil)
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Method, u.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -105,6 +99,7 @@ func (i *Iconik) GetMetadata() error {
 }
 
 func (i *Iconik) WriteCSVFile() error {
+
 	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)

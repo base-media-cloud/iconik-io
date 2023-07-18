@@ -1,11 +1,9 @@
 package iconikio
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 )
 
 func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error) {
@@ -25,12 +23,12 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 		if index > 1 {
 			found := false
 			for _, field := range i.IconikClient.Metadata.ViewFields {
-					if csvHeaderLabel == field.Label {
-							matchingIconikHeaderNames = append(matchingIconikHeaderNames, field.Name)
-							matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, field.Label)
-							found = true
-							break
-					}
+				if csvHeaderLabel == field.Label {
+					matchingIconikHeaderNames = append(matchingIconikHeaderNames, field.Name)
+					matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, field.Label)
+					found = true
+					break
+				}
 			}
 			if !found {
 				nonMatchingHeaders = append(nonMatchingHeaders, csvHeaderLabel)
@@ -46,9 +44,9 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 		if i > 0 {
 			var matchingRow []string
 			for i, csvHeaderLabel := range csvHeaderLabels {
-					if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
-							matchingRow = append(matchingRow, row[i])
-					}
+				if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
+					matchingRow = append(matchingRow, row[i])
+				}
 			}
 			matchingValues = append(matchingValues, matchingRow)
 		}
@@ -60,9 +58,9 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 
 func contains(slice []string, value string) bool {
 	for _, item := range slice {
-			if item == value {
-					return true
-			}
+		if item == value {
+			return true
+		}
 	}
 	return false
 }
@@ -113,30 +111,4 @@ func removeNullJSON(m map[string]interface{}) map[string]interface{} {
 		}
 	}
 	return m
-}
-
-func (i *Iconik) joinURL(endpoint, path string, index int) (*url.URL, error) {
-
-	var paths []string
-
-	path1 := i.IconikClient.Config.APIConfig.Endpoints[endpoint].([]interface{})[index].(map[string]interface{})["path"].([]string)
-	path2 := i.IconikClient.Config.APIConfig.Endpoints[endpoint].([]interface{})[index].(map[string]interface{})["path2"].([]string)
-
-	paths = append(paths, path1...)
-	paths = append(paths, path)
-	paths = append(paths, path2...)
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, paths...)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return nil, fmt.Errorf("invalid url")
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	return u, nil
 }
