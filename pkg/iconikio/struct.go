@@ -70,14 +70,14 @@ type IconikEndpoints struct {
 	Search       *Endpoints
 }
 
+type Endpoints struct {
+	Post, Get, Patch, Put, Delete *Endpoint
+}
+
 type Endpoint struct {
 	Path   string
 	Path2  string
 	Method string
-}
-
-type Endpoints struct {
-	Post, Get, Patch, Put, Delete *Endpoint
 }
 
 func New(cfg *Config) *Client {
@@ -126,4 +126,12 @@ func (c *Client) NewAPIConfig(appCfg config.Config) {
 			},
 		},
 	}
+}
+
+type CSVMetadata struct {
+	MetadataValues map[string]struct {
+		FieldValues []struct {
+			Value string `json:"value"`
+		} `json:"field_values"`
+	} `json:"metadata_values"`
 }
