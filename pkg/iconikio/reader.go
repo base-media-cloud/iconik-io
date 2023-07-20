@@ -189,14 +189,15 @@ func (i *Iconik) updateTitle(index int) error {
 }
 
 // updateMetadata updates the metadata for the given asset ID.
-func (i *Iconik) updateMetadata(assetID string, metadata map[string]interface{}) error {
+func (i *Iconik) updateMetadata(index int) error {
 
-	requestBody, err := json.Marshal(metadata)
+	//TODO: lookup how to force json marshal to only use part
+	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].MetadataValuesStruct)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path, assetID, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path2)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path2)
 	if err != nil {
 		return err
 	}
@@ -214,10 +215,10 @@ func (i *Iconik) updateMetadata(assetID string, metadata map[string]interface{})
 	}
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated metadata for asset ", assetID)
+		log.Println("Successfully updated metadata for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	} else {
-		log.Println("Error updating metadata for asset ", assetID)
-		log.Println(string(resBody))
+		log.Println("Error updating metadata for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		log.Println("resBody:", string(resBody))
 		log.Println(fmt.Sprint(res.StatusCode))
 		return err
 	}
