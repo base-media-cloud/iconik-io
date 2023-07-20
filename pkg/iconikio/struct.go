@@ -27,6 +27,7 @@ type Config struct {
 	Input        string
 	Output       string
 	APIConfig    *APIConfig
+	CSVMetadata  []*CSVMetadata
 }
 
 // Assets is the top level data structure that receives the unmarshalled payload
@@ -80,6 +81,31 @@ type Endpoint struct {
 	Method string
 }
 
+type CSVMetadata struct {
+	Added                bool
+	IDStruct             IDStruct
+	TitleStruct          TitleStruct
+	MetadataValuesStruct MetadataValuesStruct
+}
+
+type IDStruct struct {
+	ID string `json:"id"`
+}
+
+type TitleStruct struct {
+	Title string `json:"title"`
+}
+
+type MetadataValuesStruct struct {
+	MetadataValues map[string]struct {
+		FieldValues []FieldValue `json:"field_values"`
+	} `json:"metadata_values"`
+}
+
+type FieldValue struct {
+	Value string `json:"value"`
+}
+
 func New(cfg *Config) *Client {
 	return &Client{
 		Config: cfg,
@@ -126,12 +152,4 @@ func (c *Client) NewAPIConfig(appCfg config.Config) {
 			},
 		},
 	}
-}
-
-type CSVMetadata struct {
-	MetadataValues map[string]struct {
-		FieldValues []struct {
-			Value string `json:"value"`
-		} `json:"field_values"`
-	} `json:"metadata_values"`
 }
