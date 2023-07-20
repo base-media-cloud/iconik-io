@@ -40,16 +40,15 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 	matchingValues = append(matchingValues, matchingIconikHeaderNames)
 	matchingValues = append(matchingValues, matchingIconikHeaderLabels)
 
-	for i, row := range csvData {
-		if i > 0 {
-			var matchingRow []string
-			for i, csvHeaderLabel := range csvHeaderLabels {
-				if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
-					matchingRow = append(matchingRow, row[i])
-				}
+	for i := 1; i < len(csvData); i++ {
+		row := csvData[i]
+		var matchingRow []string
+		for i, csvHeaderLabel := range csvHeaderLabels {
+			if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
+				matchingRow = append(matchingRow, row[i])
 			}
-			matchingValues = append(matchingValues, matchingRow)
 		}
+		matchingValues = append(matchingValues, matchingRow)
 	}
 
 	return matchingValues, nonMatchingHeaders, nil
