@@ -157,31 +157,30 @@ func (i *Iconik) ReadCSVFile() error {
 }
 
 // updateTitle updates the title for the given asset ID.
-func (i *Iconik) updateTitle(assetID string, title map[string]string) error {
+func (i *Iconik) updateTitle(index int) error {
 
-	requestBody, err := json.Marshal(title)
+	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].TitleStruct)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Path, assetID)
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Path, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	if err != nil {
 		return err
 	}
-
 	u, err := url.Parse(result)
 	if err != nil {
 		return err
 	}
-
 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
 
-	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
+	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated title name for asset ", assetID)
+		log.Println("Successfully updated title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	} else {
-		log.Println("Error updating title name for asset ", assetID)
+		log.Println("Error updating title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		log.Println("resBody:", string(resBody))
 		log.Println(fmt.Sprint(res.StatusCode))
 		return err
 	}
