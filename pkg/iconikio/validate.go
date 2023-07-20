@@ -8,7 +8,44 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
+
+var validationRules = map[string][]string{
+	"Signed off":          {"true", "false"},
+	"Archived":            {"true", "false"},
+	"Can not be share":    {"true", "false"},
+	"SAP Product Asset":   {"true", "false"},
+	"Frame Rate":          {"23.976", "23.98", "24", "25", "29.97", "30", "50", "59.94", "60"},
+	"Audio Frame Rate":    {"23.976", "23.98", "24", "25", "29.97", "30", "50", "59.94", "60"},
+	"Frame Rate Mode":     {"Constant", "Variable"},
+	"AI Process":          {"Transcription", "Object Recognition", "Sports Classification"},
+	"Content Categories":  {"Demo Content", "Case Studies", "Promotional", "Projects", "Internal", "Miscellaneous"},
+	"Archive Delay, days": {}, // Empty slice means it should be an integer.
+}
+
+func SchemaValidator(header, val string) error {
+	validValues, found := validationRules[header]
+	if !found {
+		return nil
+	}
+
+	if len(validValues) == 0 {
+		_, err := strconv.Atoi(val)
+		if err != nil {
+			return fmt.Errorf("for %s the value must be set to an integer. The value is currently set to: %s", header, val)
+		}
+		return nil
+	}
+
+	for _, validVal := range validValues {
+		if val == validVal {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
+}
 
 // CheckAppIDAuthTokenCollectionID validates the App ID, Auth Token and Collection ID,
 // and returns any errors to the user via the command line.
@@ -124,57 +161,4 @@ func (i *Iconik) validateAssetID(index int) error {
 		}
 	}
 	return fmt.Errorf("ASSET %s DOES NOT EXIST IN GIVEN COLLECTION ID", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
-}
-
-// SchemaValidator checks values in the CSV against the matching headers, to see if they
-// match the given criteria.
-func SchemaValidator(header, val string) (string, string, error) {
-
-	if header == "Signed off" || header == "Archived" || header == "Can not be share" || header == "SAP Product Asset" {
-		if val == "TRUE" {
-			val = "true"
-		} else if val == "FALSE" {
-			val = "false"
-		} else if val == "true" || val == "false" {
-		} else {
-			return header, val, fmt.Errorf("for %s the value must either be set to true or false. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "Frame Rate" || header == "Audio Frame Rate" {
-		if val == "23.976" || val == "23.98" || val == "24" || val == "25" || val == "29.97" || val == "30" || val == "50" || val == "59.94" || val == "60" {
-		} else {
-			return header, val, fmt.Errorf("for %s the value must either be set to 23.976, 23.98, 24, 25, 29.97, 30, 50, 59.94 or 60. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "Frame Rate Mode" {
-		if val == "Constant" || val == "Variable" {
-		} else {
-			return header, val, fmt.Errorf("for %s the value must either be set to Constant or Variable. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "AI Process" {
-		if val == "Transcription" || val == "Object Recognition" || val == "Sports Classification" {
-		} else {
-			return header, val, fmt.Errorf("for %s the value must either be set to Transcription, Object Recognition or Sports Classification. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "Content Categories" {
-		if val == "Demo Content" || val == "Case Studies" || val == "Promotional" || val == "Projects" || val == "Internal" || val == "Miscellaneous" {
-		} else {
-			return header, val, fmt.Errorf("for %s the value must either be set to Demo Content, Case Studies, Promotional, Projects, Internal or Miscellaneous. The value is currently set to: %s", header, val)
-		}
-	}
-
-	if header == "Archive Delay, days" {
-		_, err := strconv.Atoi(val)
-		if err != nil {
-			return header, val, fmt.Errorf("for %s the value must be set to an integer. The value is currently set to: %s", header, val)
-		}
-	}
-
-	return header, val, nil
 }

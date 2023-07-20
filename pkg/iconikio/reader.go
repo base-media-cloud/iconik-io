@@ -102,7 +102,7 @@ func (i *Iconik) ReadCSVFile() error {
 			if !isBlankStringArray(valueArr) {
 				for _, val := range valueArr {
 
-					_, val, err = SchemaValidator(headerLabel, val)
+					err = SchemaValidator(headerLabel, val)
 					if err != nil {
 						return err
 					}
