@@ -9,6 +9,6 @@ type IconikRepo interface {
 	ReadCSVFile() error
 	CheckAppIDAuthTokenCollectionID() error
 	CheckMetadataID() error
-	CheckAssetbyID(assetID string) (int, error)
-	CheckAssetExistInCollection(assetID string) (int, error)
+	//CheckAssetbyID(assetID string) (int, error)
+	//CheckAssetExistInCollection(assetID string) (int, error)
 }

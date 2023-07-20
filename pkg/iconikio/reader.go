@@ -7,12 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 // ReadCSVFile reads and validates the CSV file provided.

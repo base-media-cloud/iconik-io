@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -71,72 +72,58 @@ func (i *Iconik) CheckMetadataID() error {
 	return nil
 }
 
-// CheckAssetbyID validates the asset ID provided, and returns any errors to the user via
-// the command line.
-func (i *Iconik) CheckAssetbyID(assetID string) (int, error) {
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Get.Path, assetID)
+func (i *Iconik) validateAssetID(index int) error {
+	// check asset id is valid
+	_, err := uuid.Parse(i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	if err != nil {
-		return http.StatusNotFound, err
+		return errors.New("not a valid asset ID")
 	}
 
+	// check asset id exists on Iconik servers
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Get.Path, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+	if err != nil {
+		return err
+	}
 	u, err := url.Parse(result)
 	if err != nil {
-		return http.StatusNotFound, err
+		return err
 	}
-
 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
 	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Get.Method, u.String(), nil)
 	if err != nil {
-		return http.StatusNotFound, err
+		return err
 	}
-
 	if res.StatusCode == http.StatusUnauthorized {
-		return res.StatusCode, errors.New("unauthorized- please check your asset ID is correct")
+		return fmt.Errorf("ERROR: %d: UNAUTHORIZED, PLEASE CHECK YOUR ASSET ID %s IS CORRECT, SKIPPING", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	} else if res.StatusCode == http.StatusNotFound {
-		return res.StatusCode, fmt.Errorf("%d: asset not found on Iconik servers", res.StatusCode)
+		return fmt.Errorf("ERROR: %d: ASSET %s NOT FOUND ON ICONIK SERVERS, SKIPPING", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	}
 
-	return res.StatusCode, nil
-}
-
-// CheckAssetExistInCollection checks the asset ID against the collection ID provided, and
-// returns any errors to the user via the command line.
-func (i *Iconik) CheckAssetExistInCollection(assetID string) (int, error) {
-
+	// check asset id exists in given collection id
 	var a *Asset
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
+	result2, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
-		return http.StatusNotFound, err
+		return err
 	}
-
-	u, err := url.Parse(result)
+	u2, err := url.Parse(result2)
 	if err != nil {
-		return http.StatusNotFound, err
+		return err
 	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
+	u2.Scheme = i.IconikClient.Config.APIConfig.Scheme
+	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u2.String(), nil)
 	if err != nil {
-		return res.StatusCode, err
+		return err
 	}
-
 	err = json.Unmarshal(resBody, &a)
 	if err != nil {
-		return res.StatusCode, err
+		return err
 	}
-
-	// TODO: Look into this- returning status codes regardless
 	for _, object := range a.Objects {
-		if object.ID == assetID {
-			return res.StatusCode, nil
+		if object.ID == i.IconikClient.Config.CSVMetadata[index].IDStruct.ID {
+			return nil
 		}
 	}
-
-	return res.StatusCode, nil
+	return fmt.Errorf("ASSET %s DOES NOT EXIST IN GIVEN COLLECTION ID", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 }
 
 // SchemaValidator checks values in the CSV against the matching headers, to see if they
