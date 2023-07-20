@@ -64,6 +64,15 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
+func isBlankStringArray(arr []string) bool {
+	for _, s := range arr {
+		if s != "" {
+			return false
+		}
+	}
+	return true
+}
+
 func (i *Iconik) getResponseBody(method, uri string, params io.Reader) (*http.Response, []byte, error) {
 	log.Println(uri)
 
