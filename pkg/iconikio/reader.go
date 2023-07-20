@@ -59,98 +59,99 @@ func (i *Iconik) ReadCSVFile() error {
 	// get the CSV Header Labels row
 	matchingCSVHeaderLabels := matchingCSV[1]
 
-	// range over the remaining rows, which will be the assets
-	for index, row := range matchingCSV {
-		if index > 1 {
+	for index := 2; index < len(matchingCSV); index++ {
+		fmt.Println()
+		fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
+		row := matchingCSV[index]
 
-			// make maps to store the values. these will then be used to update the Iconik API
-			title := make(map[string]string)
-			metadata := make(map[string]interface{})
-			metadataValues := make(map[string]interface{})
+		// Create a new instance of CSVMetadata.
+		csvMetadata := CSVMetadata{
+			Added: false,
+			IDStruct: IDStruct{
+				ID: row[0],
+			},
+			TitleStruct: TitleStruct{
+				Title: row[1],
+			},
+			MetadataValuesStruct: MetadataValuesStruct{
+				MetadataValues: make(map[string]struct {
+					FieldValues []FieldValue `json:"field_values"`
+				}),
+			},
+		}
 
-			// range over the values in the row
-			for count, value := range row {
-				if count == 0 {
-					// it's the asset id
-					// check asset id is valid
-					_, err := uuid.Parse(value)
-					if err != nil {
-						return errors.New("not a valid asset ID")
-					}
+		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
 
-					// check asset id exists on Iconik
-					_, err = i.CheckAssetbyID(value)
-					if err != nil {
-						return fmt.Errorf("error %s", err)
-					}
+		log.Printf("Attempting to update metadata for asset ID %s from row %d of the provided CSV:", csvMetadata.IDStruct.ID, index-1)
 
-					// check asset id exists in given collection id
-					code, err := i.CheckAssetExistInCollection(value)
+		err := i.validateAssetID(index - 2)
+		if err != nil {
+			log.Println(err)
+			fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
+			continue
+		}
+		csvMetadata.Added = true
+
+		for count := 2; count < len(row); count++ {
+			headerName := matchingCSVHeaderNames[count]
+			headerLabel := matchingCSVHeaderLabels[count]
+			fieldValueSlice := make([]FieldValue, 0)
+
+			// if there are words separated by spaces inside the field, split with a comma
+			valueArr := strings.Split(row[count], ",")
+			if !isBlankStringArray(valueArr) {
+				for _, val := range valueArr {
+
+					_, val, err = SchemaValidator(headerLabel, val)
 					if err != nil {
 						return err
 					}
-					if code == http.StatusOK {
-						continue
-					} else {
-						return errors.New("asset does not exist in given Collection ID")
-					}
 
-				} else if count == 1 {
-					// it's the title of the asset
-					title["title"] = value
-				} else if count > 1 {
-					// this is where the rest of the headers start
-					headerName := matchingCSVHeaderNames[count]
-					headerLabel := matchingCSVHeaderLabels[count]
-
-					if _, ok := metadataValues[headerName]; !ok {
-						metadataValues[headerName] = map[string]interface{}{
-							"field_values": []map[string]interface{}{},
-						}
-					}
-
-					// if there are words separated by spaces inside the field, split with a comma
-					valueArr := strings.Split(value, ",")
-					if len(valueArr) > 0 {
-						for _, val := range valueArr {
-
-							_, val, err = SchemaValidator(headerLabel, val)
-							if err != nil {
-								return err
-							}
-
-							fieldValue := map[string]interface{}{
-								"value": val,
-							}
-
-							if val != "" {
-								fieldValues := metadataValues[headerName].(map[string]interface{})["field_values"].([]map[string]interface{})
-								fieldValues = append(fieldValues, fieldValue)
-								metadataValues[headerName].(map[string]interface{})["field_values"] = fieldValues
-							} else {
-								delete(metadataValues, headerName)
-							}
-						}
-					}
+					fieldValueSlice = append(fieldValueSlice, FieldValue{Value: val})
 				}
+				// Add the fieldValueSlice to the specific headerName in MetadataValues
+				csvMetadata.MetadataValuesStruct.MetadataValues[headerName] = struct {
+					FieldValues []FieldValue `json:"field_values"`
+				}{
+					FieldValues: fieldValueSlice,
+				}
+			} else {
+				continue
 			}
+		}
 
-			// update the title name for this particular asset/row
-			err = i.updateTitle(row[0], title)
-			if err != nil {
-				return err
-			}
+		// update the title name for this particular asset/row
+		err = i.updateTitle(index - 2)
+		if err != nil {
+			return err
+		}
 
-			metadata["metadata_values"] = metadataValues
+		// update the remaining metadata for this particular asset/row
+		err = i.updateMetadata(index - 2)
+		if err != nil {
+			return err
+		}
 
-			// update the remaining metadata for this particular asset/row
-			err = i.updateMetadata(row[0], metadata)
-			if err != nil {
-				return err
-			}
+		fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 
+	}
+
+	fmt.Println()
+	log.Println("Assets successfully updated:")
+	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
+		if csvMetadata.Added {
+			log.Printf("%s (%s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title)
 		}
 	}
+
+	fmt.Println()
+	log.Println("Assets that failed to update:")
+	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
+		if !csvMetadata.Added {
+			log.Printf("%s (%s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title)
+		}
+	}
+	fmt.Println()
 
 	return nil
 }
