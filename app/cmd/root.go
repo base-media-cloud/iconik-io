@@ -45,18 +45,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	// Attach Iconik Client to Iconik Repo interface
 	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}
 
-	// Validate App ID, Auth Token and Collection ID
-	err = app.Iconik.CheckAppIDAuthTokenCollectionID()
-	if err != nil {
-		return err
-	}
-
-	// Validate Metadata ID
-	err = app.Iconik.CheckMetadataID()
-	if err != nil {
-		return err
-	}
-
 	// Get Metadata using given Metadata ID
 	err = app.Iconik.GetMetadata()
 	if err != nil {

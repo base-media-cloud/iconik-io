@@ -47,66 +47,8 @@ func SchemaValidator(header, val string) error {
 	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
 }
 
-// CheckAppIDAuthTokenCollectionID validates the App ID, Auth Token and Collection ID,
-// and returns any errors to the user via the command line.
-func (i *Iconik) CheckAppIDAuthTokenCollectionID() error {
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
-	if err != nil {
-		return err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode == http.StatusOK {
 		return nil
-	} else if res.StatusCode == http.StatusUnauthorized {
-		return errors.New("unauthorized- please check your App-ID and Auth Token are correct")
-	} else if res.StatusCode == http.StatusNotFound {
-		return errors.New("not found- please check your collection ID is correct")
 	}
-
-	return nil
-}
-
-// CheckMetadataID validates the metadata view ID provided, and returns any errors to the user
-// via the command line.
-func (i *Iconik) CheckMetadataID() error {
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path)
-	if err != nil {
-		return err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	res, _, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Method, u.String(), nil)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode == http.StatusUnauthorized {
-		return errors.New("unauthorized- please check your metadata ID is correct")
-	} else if res.StatusCode == http.StatusNotFound {
-		return errors.New("not found- please check your metadata ID is correct")
-	}
-
-	return nil
 }
 
 func (i *Iconik) validateAssetID(index int) error {
