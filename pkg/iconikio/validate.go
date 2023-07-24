@@ -47,6 +47,15 @@ func SchemaValidator(header, val string) error {
 	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
 }
 
+func IconikStatusCode(res *http.Response) error {
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return fmt.Errorf("status bad request")
+	case http.StatusNotFound:
+		return fmt.Errorf("status not found")
+	case http.StatusUnauthorized:
+		return fmt.Errorf("unauthorised- please check your App ID and Auth Token are correct")
+	default:
 		return nil
 	}
 }

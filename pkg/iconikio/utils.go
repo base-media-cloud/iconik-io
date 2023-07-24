@@ -1,6 +1,7 @@
 package iconikio
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -101,7 +102,24 @@ func (i *Iconik) getResponseBody(method, uri string, params io.Reader) (*http.Re
 	return res, resBody, nil
 }
 
+func removeNullJSONResBody(resBody []byte) ([]byte, error) {
+	var data map[string]interface{}
+	err := json.Unmarshal(resBody, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	dataNoNull := removeNullJSON(data)
+
+	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
+}
+
 func removeNullJSON(m map[string]interface{}) map[string]interface{} {
+
 	for k, v := range m {
 		if v == nil {
 			delete(m, k)

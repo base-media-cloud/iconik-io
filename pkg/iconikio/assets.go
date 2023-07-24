@@ -34,15 +34,12 @@ func (i *Iconik) GetCollection() error {
 		return err
 	}
 
-	var data map[string]interface{}
-	err = json.Unmarshal(resBody, &data)
+	jsonNoNull, err := removeNullJSONResBody(resBody)
 	if err != nil {
 		return err
 	}
 
-	dataNoNull := removeNullJSON(data)
-
-	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
+	err = json.Unmarshal(jsonNoNull, &c)
 	if err != nil {
 		return err
 	}
@@ -71,27 +68,28 @@ func (i *Iconik) GetMetadata() error {
 
 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
 
-	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Method, u.String(), nil)
+	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Method, u.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	var data map[string]interface{}
-	err = json.Unmarshal(resBody, &data)
+	err = IconikStatusCode(res)
 	if err != nil {
 		return err
 	}
 
-	dataNoNull := removeNullJSON(data)
-
-	jsonData, err := json.MarshalIndent(dataNoNull, "", "  ")
+	jsonNoNull, err := removeNullJSONResBody(resBody)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(jsonData, &i.IconikClient.Metadata)
+	err = json.Unmarshal(jsonNoNull, &i.IconikClient.Metadata)
 	if err != nil {
 		return err
+	}
+
+	if len(i.IconikClient.Metadata.Errors) != 0 {
+		return fmt.Errorf(strings.Join(i.IconikClient.Metadata.Errors, ", "))
 	}
 
 	return nil
