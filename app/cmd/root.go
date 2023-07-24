@@ -54,7 +54,7 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	if cfg.Output != "" {
 		// User has chosen CSV output:
 		// Get Assets
-		err = app.Iconik.GetCollectionAssets()
+		err = app.Iconik.GetCollection()
 		if err != nil {
 			return err
 		}

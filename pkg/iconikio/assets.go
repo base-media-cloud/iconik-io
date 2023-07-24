@@ -12,10 +12,10 @@ import (
 	"time"
 )
 
-// GetCollectionAssets gets all the results from a collection and return the full object list with metadata.
-func (i *Iconik) GetCollectionAssets() error {
+// GetCollection gets all the results from a collection and return the full object list with metadata.
+func (i *Iconik) GetCollection() error {
 
-	var a *Asset
+	var c *Collection
 
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
@@ -47,12 +47,11 @@ func (i *Iconik) GetCollectionAssets() error {
 		return err
 	}
 
-	err = json.Unmarshal(jsonData, &a)
-	if err != nil {
-		return err
+	if len(c.Errors) != 0 {
+		return fmt.Errorf(strings.Join(c.Errors, ", "))
 	}
 
-	i.IconikClient.Assets = append(i.IconikClient.Assets, a)
+	i.IconikClient.Collections = append(i.IconikClient.Collections, c)
 
 	return nil
 }
@@ -134,8 +133,8 @@ func (i *Iconik) WriteCSVFile() error {
 	numColumns := len(csvColumnsName)
 
 	// Loop through all assets
-	for _, asset := range i.IconikClient.Assets {
-		for _, object := range asset.Objects {
+	for _, collection := range i.IconikClient.Collections {
+		for _, object := range collection.Objects {
 			row := make([]string, numColumns+2) // +2 for id and title
 			row[0] = object.ID
 			row[1] = object.Title

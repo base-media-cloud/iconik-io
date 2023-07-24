@@ -191,7 +191,6 @@ func (i *Iconik) updateTitle(index int) error {
 // updateMetadata updates the metadata for the given asset ID.
 func (i *Iconik) updateMetadata(index int) error {
 
-	//TODO: lookup how to force json marshal to only use part
 	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].MetadataValuesStruct)
 	if err != nil {
 		return errors.New("error marshaling JSON")

@@ -11,12 +11,12 @@ type Iconik struct {
 }
 
 type Client struct {
-	Assets   []*Asset
-	Metadata *Metadata
-	Config   *Config
+	Collections []*Collection
+	Metadata    *Metadata
+	Config      *Config
 }
 
-// type Conf is the structure that holds the key variables required
+// Config is the structure that holds the key variables required
 // in the execution of the service.
 type Config struct {
 	IconikURL    string
@@ -30,13 +30,14 @@ type Config struct {
 	CSVMetadata  []*CSVMetadata
 }
 
-// Assets is the top level data structure that receives the unmarshalled payload
+// Collection is the top level data structure that receives the unmarshalled payload
 // response.
-type Asset struct {
+type Collection struct {
 	Objects []*Object `json:"objects"`
+	Errors  []string  `json:"errors"`
 }
 
-// Objects acts as a non nested struct to the Objects type in Assets.
+// Object acts as a non nested struct to the Objects type in Collection.
 type Object struct {
 	ID       string                 `json:"id"`
 	Metadata map[string]interface{} `json:"metadata"`
@@ -50,6 +51,7 @@ type Object struct {
 // response.
 type Metadata struct {
 	ViewFields []*ViewField `json:"view_fields"`
+	Errors     []string     `json:"errors"`
 }
 
 // ViewField acts as a non nested struct to the ViewFields type in MetadataFields.

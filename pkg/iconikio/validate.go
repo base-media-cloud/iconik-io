@@ -79,7 +79,7 @@ func (i *Iconik) validateAssetID(index int) error {
 	}
 
 	// check asset id exists in given collection id
-	var a *Asset
+	var c *Collection
 	result2, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
 	if err != nil {
 		return err
@@ -93,11 +93,11 @@ func (i *Iconik) validateAssetID(index int) error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(resBody, &a)
+	err = json.Unmarshal(resBody, &c)
 	if err != nil {
 		return err
 	}
-	for _, object := range a.Objects {
+	for _, object := range c.Objects {
 		if object.ID == i.IconikClient.Config.CSVMetadata[index].IDStruct.ID {
 			return nil
 		}
