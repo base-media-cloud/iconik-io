@@ -42,6 +42,11 @@ type Object struct {
 	ID       string                   `json:"id"`
 	Metadata map[string][]interface{} `json:"metadata"`
 	Title    string                   `json:"title"`
+	Files    []*File                  `json:"files"`
+}
+
+type File struct {
+	OriginalName string `json:"original_name"`
 }
 
 // ====================================================
@@ -97,12 +102,17 @@ type Endpoint struct {
 type CSVMetadata struct {
 	Added                bool
 	IDStruct             IDStruct
+	OriginalNameStruct   OriginalNameStruct
 	TitleStruct          TitleStruct
 	MetadataValuesStruct MetadataValuesStruct
 }
 
 type IDStruct struct {
 	ID string `json:"id"`
+}
+
+type OriginalNameStruct struct {
+	OriginalName string `json:"original_name"`
 }
 
 type TitleStruct struct {
