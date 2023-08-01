@@ -14,14 +14,16 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 	var matchingIconikHeaderNames []string
 	var matchingIconikHeaderLabels []string
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "id")
+	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "original_name")
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "title")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "id")
+	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "original_name")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "title")
 
 	var nonMatchingHeaders []string
 
 	for index, csvHeaderLabel := range csvHeaderLabels {
-		if index > 1 {
+		if index > 2 {
 			found := false
 			for _, field := range i.IconikClient.Metadata.ViewFields {
 				if csvHeaderLabel == field.Label {
@@ -115,7 +117,7 @@ func removeNullJSONResBody(resBody []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return jsonData, nil
 }
 
