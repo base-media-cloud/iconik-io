@@ -60,6 +60,37 @@ func IconikStatusCode(res *http.Response) error {
 	}
 }
 
+func (i *Iconik) validateFilename(index int) error {
+	// check filename exists in given collection id
+	var c *Collection
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
+	if err != nil {
+		return err
+	}
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(resBody, &c)
+	if err != nil {
+		return err
+	}
+	for _, object := range c.Objects {
+		for _, file := range object.Files {
+			if file.OriginalName == i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName {
+				i.IconikClient.Config.CSVMetadata[index].IDStruct.ID = object.ID
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("file %s does not exist in given collection id", i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
+}
+
 func (i *Iconik) validateAssetID(index int) error {
 	// check asset id is valid
 	_, err := uuid.Parse(i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
