@@ -113,9 +113,9 @@ func (i *Iconik) validateAssetID(index int) error {
 		return err
 	}
 	if res.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("ERROR: %d: UNAUTHORIZED, PLEASE CHECK YOUR ASSET ID %s IS CORRECT, SKIPPING", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		return fmt.Errorf("%d: unauthorized, please check your asset id %s is correct", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	} else if res.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("ERROR: %d: ASSET %s NOT FOUND ON ICONIK SERVERS, SKIPPING", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		return fmt.Errorf("%d: asset %s not found on iconik servers", res.StatusCode, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 	}
 
 	// check asset id exists in given collection id
@@ -138,9 +138,12 @@ func (i *Iconik) validateAssetID(index int) error {
 		return err
 	}
 	for _, object := range c.Objects {
-		if object.ID == i.IconikClient.Config.CSVMetadata[index].IDStruct.ID {
-			return nil
+		for _, file := range object.Files {
+			if object.ID == i.IconikClient.Config.CSVMetadata[index].IDStruct.ID {
+				i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName = file.OriginalName
+				return nil
+			}
 		}
 	}
-	return fmt.Errorf("ASSET %s DOES NOT EXIST IN GIVEN COLLECTION ID", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+	return fmt.Errorf("asset %s does not exist in given collection id", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 }
