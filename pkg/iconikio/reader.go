@@ -28,14 +28,15 @@ func (i *Iconik) ReadCSVFile() error {
 	// read all the CSV data into a 2D slice we can work with
 	csvData, err := csvReader.ReadAll()
 	if err != nil {
-		return errors.New("error reading CSV file")
+		//return errors.New("error reading CSV file")
+		return err
 	}
 
 	// the first row of the 2D slice will be the header row
 	csvHeaders := csvData[0]
 
 	// we then validate that the schema for the header row is correct
-	if csvHeaders[0] != "id" || csvHeaders[1] != "title" {
+	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "title" {
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
 
@@ -70,8 +71,11 @@ func (i *Iconik) ReadCSVFile() error {
 			IDStruct: IDStruct{
 				ID: row[0],
 			},
+			OriginalNameStruct: OriginalNameStruct{
+				OriginalName: row[1],
+			},
 			TitleStruct: TitleStruct{
-				Title: row[1],
+				Title: row[2],
 			},
 			MetadataValuesStruct: MetadataValuesStruct{
 				MetadataValues: make(map[string]struct {
@@ -85,14 +89,15 @@ func (i *Iconik) ReadCSVFile() error {
 		log.Printf("Attempting to update metadata for asset ID %s from row %d of the provided CSV:", csvMetadata.IDStruct.ID, index-1)
 
 		err := i.validateAssetID(index - 2)
-		if err != nil {
-			log.Println(err)
+		err2 := i.validateFilename(index - 2)
+		if err != nil && err2 != nil {
+			log.Printf("%s & %s, skipping\n", err, err2)
 			fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 			continue
 		}
 		csvMetadata.Added = true
 
-		for count := 2; count < len(row); count++ {
+		for count := 3; count < len(row); count++ {
 			headerName := matchingCSVHeaderNames[count]
 			headerLabel := matchingCSVHeaderLabels[count]
 			fieldValueSlice := make([]FieldValue, 0)
@@ -139,7 +144,7 @@ func (i *Iconik) ReadCSVFile() error {
 	log.Println("Assets successfully updated:")
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if csvMetadata.Added {
-			log.Printf("%s (%s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title)
+			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
 
@@ -147,7 +152,7 @@ func (i *Iconik) ReadCSVFile() error {
 	log.Println("Assets that failed to update:")
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if !csvMetadata.Added {
-			log.Printf("%s (%s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title)
+			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
 	fmt.Println()
@@ -176,7 +181,7 @@ func (i *Iconik) updateTitle(index int) error {
 	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		log.Printf("Successfully updated title name for asset %s (%s)", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
 	} else {
 		log.Println("Error updating title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 		log.Println("resBody:", string(resBody))
