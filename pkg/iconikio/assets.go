@@ -123,7 +123,7 @@ func (i *Iconik) WriteCSVFile() error {
 	}
 
 	// Write the header row
-	headerRow := append([]string{"id", "title"}, csvColumnsLabel...)
+	headerRow := append([]string{"id", "original_name", "title"}, csvColumnsLabel...)
 	err = metadataFile.Write(headerRow)
 	if err != nil {
 		return errors.New("error writing header row")
@@ -134,16 +134,17 @@ func (i *Iconik) WriteCSVFile() error {
 	for _, collection := range i.IconikClient.Collections {
 		for _, object := range collection.Objects {
 
-			row := make([]string, numColumns+2)
+			row := make([]string, numColumns+3)
 			row[0] = object.ID
-			row[1] = object.Title
+			row[1] = object.Files[0].OriginalName
+			row[2] = object.Title
 
-			for i := 2; i < numColumns; i++ {
+			for i := 0; i < numColumns; i++ {
 				metadataField := csvColumnsName[i]
 				metadataValue := object.Metadata[metadataField]
 				result := make([]string, len(metadataValue))
 
-				for i, elem := range metadataValue {
+				for index, elem := range metadataValue {
 					switch val := elem.(type) {
 					case string:
 						str := val
@@ -153,20 +154,19 @@ func (i *Iconik) WriteCSVFile() error {
 						if strings.HasSuffix(str, " ") {
 							str = strings.TrimRight(str, " ")
 						}
-						result[i] = str
+						result[index] = str
 					case bool:
-						result[i] = fmt.Sprintf("%t", val)
+						result[index] = fmt.Sprintf("%t", val)
 					case int:
-						result[i] = fmt.Sprintf("%d", val)
-						fmt.Println(result[i])
+						result[index] = fmt.Sprintf("%d", val)
 					default:
 					}
 				}
 
 				if len(result) > 1 {
-					row[i] = strings.Join(result, ",")
+					row[i+3] = strings.Join(result, ",")
 				} else {
-					row[i] = strings.Join(result, "")
+					row[i+3] = strings.Join(result, "")
 				}
 
 			}
