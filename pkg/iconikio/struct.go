@@ -39,9 +39,9 @@ type Collection struct {
 
 // Object acts as a non nested struct to the Objects type in Collection.
 type Object struct {
-	ID       string                 `json:"id"`
-	Metadata map[string]interface{} `json:"metadata"`
-	Title    string                 `json:"title"`
+	ID       string                   `json:"id"`
+	Metadata map[string][]interface{} `json:"metadata"`
+	Title    string                   `json:"title"`
 }
 
 // ====================================================

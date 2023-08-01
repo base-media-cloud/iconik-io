@@ -133,25 +133,42 @@ func (i *Iconik) WriteCSVFile() error {
 	// Loop through all assets
 	for _, collection := range i.IconikClient.Collections {
 		for _, object := range collection.Objects {
-			row := make([]string, numColumns+2) // +2 for id and title
+
+			row := make([]string, numColumns+2)
 			row[0] = object.ID
 			row[1] = object.Title
 
-			for i := 0; i < numColumns; i++ {
+			for i := 2; i < numColumns; i++ {
 				metadataField := csvColumnsName[i]
-				metadataValue, ok := object.Metadata[metadataField]
-				if ok {
-					switch v := metadataValue.(type) {
-					case []interface{}:
-						var values []string
-						for _, val := range v {
-							values = append(values, fmt.Sprintf("%v", val))
+				metadataValue := object.Metadata[metadataField]
+				result := make([]string, len(metadataValue))
+
+				for i, elem := range metadataValue {
+					switch val := elem.(type) {
+					case string:
+						str := val
+						if strings.HasPrefix(str, " ") {
+							str = strings.TrimLeft(str, " ")
 						}
-						row[i+2] = strings.Join(values, ",")
+						if strings.HasSuffix(str, " ") {
+							str = strings.TrimRight(str, " ")
+						}
+						result[i] = str
+					case bool:
+						result[i] = fmt.Sprintf("%t", val)
+					case int:
+						result[i] = fmt.Sprintf("%d", val)
+						fmt.Println(result[i])
 					default:
-						row[i+2] = fmt.Sprintf("%v", v)
 					}
 				}
+
+				if len(result) > 1 {
+					row[i] = strings.Join(result, ",")
+				} else {
+					row[i] = strings.Join(result, "")
+				}
+
 			}
 
 			err = metadataFile.Write(row)
