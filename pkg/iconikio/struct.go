@@ -50,14 +50,25 @@ type Object struct {
 // Metadata is the top level data structure that receives the unmarshalled payload
 // response.
 type Metadata struct {
-	ViewFields []*ViewField `json:"view_fields"`
-	Errors     []string     `json:"errors"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	ViewFields  []*ViewField `json:"view_fields"`
+	Errors      []string     `json:"errors"`
 }
 
-// ViewField acts as a non nested struct to the ViewFields type in MetadataFields.
+// ViewField acts as a non nested struct to the ViewFields type in Metadata.
 type ViewField struct {
-	Name  string `json:"name"`
+	Name      string    `json:"name"`
+	Label     string    `json:"label"`
+	FieldType string    `json:"field_type"`
+	Options   []*Option `json:"options"`
+	ReadOnly  bool      `json:"read_only"`
+	Required  bool      `json:"required"`
+}
+
+type Option struct {
 	Label string `json:"label"`
+	Value string `json:"value"`
 }
 
 type APIConfig struct {
