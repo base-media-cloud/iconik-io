@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
+	"os"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 	"go.uber.org/zap"
@@ -10,8 +12,9 @@ import (
 )
 
 var (
-	app   Application
-	build = "develop"
+	app     Application
+	build   string
+	version string
 )
 
 type Application struct {
@@ -20,6 +23,12 @@ type Application struct {
 }
 
 func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
+	ver := flag.Bool("version", false, "Print version")
+	flag.Parse()
+	if *ver {
+		versionInfo()
+		os.Exit(0)
+	}
 
 	// Add logger to part of our Application struct and log
 	app.Logger = l
@@ -108,4 +117,14 @@ func argParse() (*iconikio.Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func versionInfo() {
+	fmt.Printf(`
+base iconik-io
+iconik CSV read/write tool
+Version: %s | Build: %s
+Copyright © 2023 Base Media Cloud Limited
+https://base-mc.com
+`, version, build)
 }

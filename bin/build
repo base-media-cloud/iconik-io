@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# set variables
+PACKAGE=$1
+VERSION='0.10'
+BUILD=$(git rev-parse --short HEAD)
+DIR="build"
+
+if [ -d "./$DIR" ]; then
+  echo "Build Directory exists"
+else
+  mkdir $DIR
+  echo "Created build directory"
+fi
+
+
+if [ -z "$PACKAGE" ]; then
+      echo "usage: $0 <package-name>"
+      exit 1
+fi
+
+platforms=("darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "windows/386" "windows/arm")
+
+for platform in "${platforms[@]}";
+do
+      platform_split=(${platform//\// })
+      package_name=$PACKAGE
+      GOOS=${platform_split[0]}
+      GOARCH=${platform_split[1]}
+      echo "Building for ${GOOS}/${GOARCH}"
+
+      output_name=$PACKAGE'-'$VERSION'-'$GOOS'-'$GOARCH
+
+      if [ "$GOOS" = 'windows' ]; then
+        package_name+='.exe'
+      fi
+
+      # build the Go executable
+      env GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="-X './app/cmd/root.version=${VERSION}' -X './app/cmd/root.build=${BUILD}'" -o ./$DIR/$package_name ./app/
+      wait
+
+      # TAR the files
+      echo "Tarring the file: $package_name"
+      tar -czvf ./$DIR/"${output_name}.tar.gz" ./$DIR/$package_name
+      wait
+
+      # remove the non packaged binary file
+      rm ./$DIR/$package_name
+
+      if [ $? -ne 0 ]; then
+        echo 'An error has occurred! Aborting the script execution...'
+        exit 1
+      fi
+
+done

@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	l, err := logger.New("PD-ICONIK-IO-RD")
+	l, err := logger.New("iconik-io")
 	if err != nil {
 		l.Fatalw("error encountered: %s", err)
 	}
