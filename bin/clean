@@ -1,0 +1,10 @@
+#!/bin/bash
+
+DIR="build"
+
+if [ -d "./$DIR" ]; then
+  echo "Removing Build Directory"
+  rm -rf ./$DIR
+else
+  echo "Nothing to do"
+fi
