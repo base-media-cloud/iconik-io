@@ -91,7 +91,7 @@ func argParse() (*iconikio.Config, error) {
 
 	var cfg iconikio.Config
 
-	flag.StringVar(&cfg.IconikURL, "iconik-url", "https://preview.iconik.cloud", "the iconik URL (default https://preview.iconik.cloud)")
+	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL (default https://app.iconik.io)")
 	flag.StringVar(&cfg.AppID, "app-id", "", "iconik Application ID")
 	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
 	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
