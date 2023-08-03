@@ -119,25 +119,7 @@ func (i *Iconik) validateAssetID(index int) error {
 	}
 
 	// check asset id exists in given collection id
-	var c *Collection
-	result2, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path)
-	if err != nil {
-		return err
-	}
-	u2, err := url.Parse(result2)
-	if err != nil {
-		return err
-	}
-	u2.Scheme = i.IconikClient.Config.APIConfig.Scheme
-	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u2.String(), nil)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(resBody, &c)
-	if err != nil {
-		return err
-	}
-	for _, object := range c.Objects {
+	for _, object := range i.IconikClient.Assets {
 		for _, file := range object.Files {
 			if object.ID == i.IconikClient.Config.CSVMetadata[index].IDStruct.ID {
 				i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName = file.OriginalName
@@ -145,5 +127,6 @@ func (i *Iconik) validateAssetID(index int) error {
 			}
 		}
 	}
+
 	return fmt.Errorf("asset %s does not exist in given collection id", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 }
