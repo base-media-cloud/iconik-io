@@ -11,9 +11,10 @@ type Iconik struct {
 }
 
 type Client struct {
-	Collections []*Collection
-	Metadata    *Metadata
-	Config      *Config
+	Collection *Collection
+	Metadata   *Metadata
+	Config     *Config
+	Assets     []*Object
 }
 
 // Config is the structure that holds the key variables required
@@ -39,10 +40,11 @@ type Collection struct {
 
 // Object acts as a non nested struct to the Objects type in Collection.
 type Object struct {
-	ID       string                   `json:"id"`
-	Metadata map[string][]interface{} `json:"metadata"`
-	Title    string                   `json:"title"`
-	Files    []*File                  `json:"files"`
+	ID         string                   `json:"id"`
+	Metadata   map[string][]interface{} `json:"metadata"`
+	Title      string                   `json:"title"`
+	Files      []*File                  `json:"files"`
+	ObjectType string                   `json:"object_type"`
 }
 
 type File struct {
@@ -152,7 +154,7 @@ func (c *Client) NewAPIConfig(appCfg config.Config) {
 			},
 			Collection: &Endpoints{
 				Get: &Endpoint{
-					Path:   fmt.Sprintf("%s%s/contents/", appCfg.CollectionPrefixURL, c.Config.CollectionID),
+					Path:   fmt.Sprintf("%s/", appCfg.CollectionPrefixURL),
 					Method: http.MethodGet,
 				},
 			},

@@ -3,8 +3,9 @@
 package iconikio
 
 type IconikRepo interface {
-	GetCollection() error
+	GetCollection(collectionID string) error
 	GetMetadata() error
 	WriteCSVFile() error
 	ReadCSVFile() error
+	ProcessObjects(c *Collection, assetsMap map[string]struct{}) error
 }

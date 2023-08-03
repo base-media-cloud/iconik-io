@@ -55,14 +55,19 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	if cfg.Output != "" {
-		// User has chosen CSV output:
-		// Get Assets
-		err = app.Iconik.GetCollection()
-		if err != nil {
-			return err
-		}
+	// Get Collection using given Collection ID
+	err = app.Iconik.GetCollection(cfg.CollectionID)
+	if err != nil {
+		return err
+	}
 
+	assetsMap := make(map[string]struct{})
+	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap)
+	if err != nil {
+		return err
+	}
+
+	if cfg.Output != "" {
 		// Build CSV and output
 		err = app.Iconik.WriteCSVFile()
 		if err != nil {
@@ -71,7 +76,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	if cfg.Input != "" {
-		// User has chosen CSV input:
 		// Read CSV file and update metadata and title on Iconik API
 		err := app.Iconik.ReadCSVFile()
 		if err != nil {
