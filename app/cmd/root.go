@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
-	"os"
-
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -23,12 +21,6 @@ type Application struct {
 }
 
 func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
-	ver := flag.Bool("version", false, "Print version")
-	flag.Parse()
-	if *ver {
-		versionInfo()
-		os.Exit(0)
-	}
 
 	// Add logger to part of our Application struct and log
 	app.Logger = l
@@ -43,6 +35,9 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	cfg, err := argParse()
 	if err != nil {
 		return err
+	}
+	if cfg == nil {
+		return nil
 	}
 
 	// Create new Iconik Client struct
@@ -98,7 +93,13 @@ func argParse() (*iconikio.Config, error) {
 	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
+	ver := flag.Bool("version", false, "Print version")
 	flag.Parse()
+
+	if *ver {
+		versionInfo()
+		return nil, nil
+	}
 
 	if cfg.AppID == "" {
 		app.Logger.Fatalw("No App-Id provided")
