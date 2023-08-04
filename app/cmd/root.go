@@ -118,7 +118,9 @@ func argParse() (*iconikio.Config, error) {
 		app.Logger.Fatalw("No Metadata View ID provided")
 	}
 	if cfg.Input == "" && cfg.Output == "" {
-		app.Logger.Fatalw("Neither input or output mode selected. Please select one.")
+		app.Logger.Infoln("Neither input or output mode selected")
+		versionInfo()
+		return nil, nil
 	}
 
 	return &cfg, nil
