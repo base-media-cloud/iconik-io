@@ -22,7 +22,7 @@ To install this tool, please run:
 
 ### Usage
 
-There are two modes of use for this command-line tool, input, and output.
+There are two modes of use for this command-line tool: `input`, and `output`.
 
 
 
@@ -59,7 +59,6 @@ $ pd-iconik-io-rd -input input.csv -app-id <AppID> \
 |--------|---------------|---------------------|---------------|--------------------------------|-----------------|  
 | `UUID` | filename1.mp4 | My asset title      | Field 1 Value | Field 2 Value1, Field 2 Value2 | `true`          |  
 | `UUID` | filename2.mp4 | Another asset title | Field 1 Value | Field 2 Value1, Field 2 Value2 | `false`         |
-
 
 
 The command line arguments required by input mode are listed in Table 2 – Input command-line arguments.
@@ -129,6 +128,13 @@ Table 3 – Output command-line arguments
 -collection-id #the ID of the collection in iconik where the assets reside.
 -metadata-view-id #the ID of the Metadata View of interest.
 ```
+
+##### Notes
+
+If neither `input` or `output` mode is selected, the tool will display the version, and then exit.
+
+The tool will also recursively traverse collections in iconik. Therefore, if you provide the top-level collection ID, it will search through all the collections nested within it for assets.
+
 
 
 
