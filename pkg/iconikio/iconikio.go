@@ -5,7 +5,9 @@ package iconikio
 type IconikRepo interface {
 	GetCollection(collectionID string) error
 	GetMetadata() error
-	WriteCSVFile() error
+	PrepMetadataForWriting() ([][]string, error)
+	WriteCSVFile(metadataFile [][]string) error
+	WriteExcelFile(metadataFile [][]string) error
 	ReadCSVFile() error
 	ProcessObjects(c *Collection, assetsMap map[string]struct{}) error
 }

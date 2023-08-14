@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xuri/excelize/v2"
 	"log"
 	"net/url"
 	"os"
@@ -114,23 +115,9 @@ func (i *Iconik) GetMetadata() error {
 	return nil
 }
 
-func (i *Iconik) WriteCSVFile() error {
+func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
 
-	// Get today's date and time
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.csv", today)
-	filePath := i.IconikClient.Config.Output + filename
-
-	// Create the CSV file
-	csvFile, err := os.Create(filePath)
-	if err != nil {
-		return errors.New("error creating CSV file")
-	}
-	defer csvFile.Close()
-
-	metadataFile := csv.NewWriter(csvFile)
-	defer metadataFile.Flush()
-
+	var metadataFile [][]string
 	var csvColumnsName []string
 	var csvColumnsLabel []string
 
@@ -143,10 +130,7 @@ func (i *Iconik) WriteCSVFile() error {
 
 	// Write the header row
 	headerRow := append([]string{"id", "original_name", "title"}, csvColumnsLabel...)
-	err = metadataFile.Write(headerRow)
-	if err != nil {
-		return errors.New("error writing header row")
-	}
+	metadataFile = append(metadataFile, headerRow)
 	numColumns := len(csvColumnsName)
 
 	// Loop through all assets
@@ -188,12 +172,65 @@ func (i *Iconik) WriteCSVFile() error {
 
 		}
 
-		err = metadataFile.Write(row)
+		metadataFile = append(metadataFile, row)
+	}
+
+	return metadataFile, nil
+}
+
+func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
+
+	// Get today's date and time
+	today := time.Now().Format("2006-01-02_150405")
+	filename := fmt.Sprintf("%s.csv", today)
+	filePath := i.IconikClient.Config.Output + filename
+
+	// Create the CSV file
+	csvFile, err := os.Create(filePath)
+	if err != nil {
+		return errors.New("error creating CSV file")
+	}
+	defer csvFile.Close()
+
+	csvWriter := csv.NewWriter(csvFile)
+	defer csvWriter.Flush()
+
+	err = csvWriter.WriteAll(metadataFile)
+	if err != nil {
+		return err
+	}
+
+	log.Println("CSV file successfully saved to", filePath)
+	return nil
+}
+
+func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
+
+	// Get today's date and time
+	today := time.Now().Format("2006-01-02_150405")
+	filename := fmt.Sprintf("%s.xlsx", today)
+	filePath := i.IconikClient.Config.Output + filename
+	sheetName := today
+
+	// Create the excel file
+	excelFile := excelize.NewFile()
+	defer excelFile.Close()
+	excelFile.SetSheetName("Sheet1", sheetName)
+
+	for i, row := range metadataFile {
+		startCell, err := excelize.JoinCellName("A", i+1)
 		if err != nil {
-			return errors.New("error writing row")
+			return err
+		}
+		if err := excelFile.SetSheetRow(sheetName, startCell, &row); err != nil {
+			return err
 		}
 	}
 
-	log.Println("File successfully saved to", filePath)
+	if err := excelFile.SaveAs(filePath); err != nil {
+		return err
+	}
+
+	log.Println("Excel file successfully saved to", filePath)
 	return nil
 }

@@ -67,9 +67,27 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	if cfg.Output != "" {
+	if cfg.Output != "" && cfg.Excel {
 		// Build CSV and output
-		err = app.Iconik.WriteCSVFile()
+		metadataFile, err := app.Iconik.PrepMetadataForWriting()
+		if err != nil {
+			return err
+		}
+
+		err = app.Iconik.WriteExcelFile(metadataFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	if cfg.Output != "" && cfg.CSV {
+		// Build CSV and output
+		metadataFile, err := app.Iconik.PrepMetadataForWriting()
+		if err != nil {
+			return err
+		}
+
+		err = app.Iconik.WriteCSVFile(metadataFile)
 		if err != nil {
 			return err
 		}
@@ -97,7 +115,10 @@ func argParse() (*iconikio.Config, error) {
 	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
+	flag.BoolVar(&cfg.Excel, "excel", false, "Select Excel output")
+	flag.BoolVar(&cfg.CSV, "csv", false, "Select CSV output")
 	ver := flag.Bool("version", false, "Print version")
+
 	flag.Parse()
 
 	if *ver {
@@ -119,6 +140,11 @@ func argParse() (*iconikio.Config, error) {
 	}
 	if cfg.Input == "" && cfg.Output == "" {
 		app.Logger.Infoln("Neither input or output mode selected")
+		versionInfo()
+		return nil, nil
+	}
+	if cfg.Output != "" && !cfg.Excel && !cfg.CSV {
+		app.Logger.Infoln("Neither excel or csv file format selected")
 		versionInfo()
 		return nil, nil
 	}

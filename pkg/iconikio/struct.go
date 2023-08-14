@@ -27,6 +27,8 @@ type Config struct {
 	ViewID       string
 	Input        string
 	Output       string
+	Excel        bool
+	CSV          bool
 	APIConfig    *APIConfig
 	CSVMetadata  []*CSVMetadata
 }
