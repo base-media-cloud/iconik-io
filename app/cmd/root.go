@@ -130,7 +130,7 @@ func argParse() (*iconikio.Config, error) {
 
 	var cfg iconikio.Config
 
-	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL (default https://app.iconik.io)")
+	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL")
 	flag.StringVar(&cfg.AppID, "app-id", "", "iconik Application ID")
 	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
 	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
@@ -140,8 +140,13 @@ func argParse() (*iconikio.Config, error) {
 	flag.BoolVar(&cfg.Excel, "excel", false, "Select Excel output")
 	flag.BoolVar(&cfg.CSV, "csv", false, "Select CSV output")
 	ver := flag.Bool("version", false, "Print version")
-
 	flag.Parse()
+
+	if flag.NFlag() == 0 {
+		fmt.Println("Usage:")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
 	if *ver {
 		versionInfo()
