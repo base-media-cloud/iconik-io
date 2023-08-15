@@ -7,6 +7,8 @@ import (
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -93,9 +95,29 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		}
 	}
 
-	if cfg.Input != "" {
-		// Read CSV file and update metadata and title on Iconik API
-		err := app.Iconik.ReadCSVFile()
+	if filepath.Ext(cfg.Input) == ".xlsx" {
+		fmt.Println()
+		fmt.Println("Inputting data from provided Excel file:")
+
+		excelData, err := app.Iconik.ReadExcelFile()
+		if err != nil {
+			return err
+		}
+		err = app.Iconik.UpdateIconik(excelData)
+		if err != nil {
+			return err
+		}
+	}
+
+	if filepath.Ext(cfg.Input) == ".csv" {
+		fmt.Println()
+		fmt.Println("Inputting data from provided CSV file:")
+
+		csvData, err := app.Iconik.ReadCSVFile()
+		if err != nil {
+			return err
+		}
+		err = app.Iconik.UpdateIconik(csvData)
 		if err != nil {
 			return err
 		}

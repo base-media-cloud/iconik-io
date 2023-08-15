@@ -6,19 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xuri/excelize/v2"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 )
 
-// ReadCSVFile reads and validates the CSV file provided.
-func (i *Iconik) ReadCSVFile() error {
-
+func (i *Iconik) ReadCSVFile() ([][]string, error) {
 	// open the provided CSV file
 	csvFile, err := os.Open(i.IconikClient.Config.Input)
 	if err != nil {
-		return errors.New("error opening CSV file")
+		return nil, errors.New("error opening CSV file")
 	}
 	defer csvFile.Close()
 
@@ -29,41 +28,65 @@ func (i *Iconik) ReadCSVFile() error {
 	csvData, err := csvReader.ReadAll()
 	if err != nil {
 		//return errors.New("error reading CSV file")
-		return err
+		return nil, err
 	}
 
+	return csvData, nil
+}
+
+func (i *Iconik) ReadExcelFile() ([][]string, error) {
+
+	excelFile, err := excelize.OpenFile(i.IconikClient.Config.Input)
+	if err != nil {
+		return nil, err
+	}
+	defer excelFile.Close()
+
+	activeSheet := excelFile.GetSheetList()[excelFile.GetActiveSheetIndex()]
+
+	excelData, err := excelFile.GetRows(activeSheet)
+	if err != nil {
+		return nil, err
+	}
+
+	return excelData, nil
+}
+
+// UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
+func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	// the first row of the 2D slice will be the header row
-	csvHeaders := csvData[0]
+	csvHeaders := metadataFile[0]
 
 	// we then validate that the schema for the header row is correct
 	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "title" {
+		fmt.Println(csvHeaders)
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
 
 	// get the slimmed down 2D slice that contains only the columns matched to the given metadata view
-	matchingCSV, nonMatchingHeaders, err := i.matchCSVtoAPI(csvData)
+	matchingData, nonMatchingHeaders, err := i.matchCSVtoAPI(metadataFile)
 	if err != nil {
 		return err
 	}
 
 	if len(nonMatchingHeaders) > 0 {
-		// log to the user if there were any columns in the provided CSV that have been left out
-		fmt.Println("Some columns from the CSV provided have not been included in the upload to Iconik, as they are not part of the metadata view provided. Please see below for the headers of the columns not included:")
+		// log to the user if there were any columns in the provided file that have been left out
+		fmt.Println("Some columns from the file provided have not been included in the upload to Iconik, as they are not part of the metadata view provided. Please see below for the headers of the columns not included:")
 		fmt.Println()
 		for _, nonMatchingHeader := range nonMatchingHeaders {
 			fmt.Println(nonMatchingHeader)
 		}
 	}
 
-	// get the CSV Header Names row
-	matchingCSVHeaderNames := matchingCSV[0]
-	// get the CSV Header Labels row
-	matchingCSVHeaderLabels := matchingCSV[1]
+	// get the file Header Names row
+	matchingFileHeaderNames := matchingData[0]
+	// get the file Header Labels row
+	matchingFileHeaderLabels := matchingData[1]
 
-	for index := 2; index < len(matchingCSV); index++ {
+	for index := 2; index < len(matchingData); index++ {
 		fmt.Println()
 		fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
-		row := matchingCSV[index]
+		row := matchingData[index]
 
 		// Create a new instance of CSVMetadata.
 		csvMetadata := CSVMetadata{
@@ -86,7 +109,7 @@ func (i *Iconik) ReadCSVFile() error {
 
 		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
 
-		log.Printf("Attempting to update metadata for asset ID %s from row %d of the provided CSV:", csvMetadata.IDStruct.ID, index-1)
+		log.Printf("Attempting to update metadata for asset ID %s from row %d of the provided file:", csvMetadata.IDStruct.ID, index-1)
 
 		err := i.validateAssetID(index - 2)
 		err2 := i.validateFilename(index - 2)
@@ -98,8 +121,8 @@ func (i *Iconik) ReadCSVFile() error {
 		csvMetadata.Added = true
 
 		for count := 3; count < len(row); count++ {
-			headerName := matchingCSVHeaderNames[count]
-			headerLabel := matchingCSVHeaderLabels[count]
+			headerName := matchingFileHeaderNames[count]
+			headerLabel := matchingFileHeaderLabels[count]
 			fieldValueSlice := make([]FieldValue, 0)
 
 			// if there are words separated by spaces inside the field, split with a comma
