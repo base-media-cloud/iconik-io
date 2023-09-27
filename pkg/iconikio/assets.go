@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/xuri/excelize/v2"
 )
 
 // GetCollection gets all the results from a collection and return the full object list with metadata.
@@ -29,6 +30,9 @@ func (i *Iconik) GetCollection(collectionID string) error {
 	}
 
 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+	queryParams := u.Query()
+	queryParams.Set("per_page", "10000")
+	u.RawQuery = queryParams.Encode()
 
 	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
 	if err != nil {
