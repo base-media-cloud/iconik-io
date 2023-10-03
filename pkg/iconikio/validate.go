@@ -63,6 +63,8 @@ func IconikStatusCode(res *http.Response) error {
 func (i *Iconik) validateFilename(index int) error {
 	for _, object := range i.IconikClient.Assets {
 		for _, file := range object.Files {
+			fmt.Println(file.OriginalName)
+			fmt.Println(i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
 			if file.OriginalName == i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName {
 				i.IconikClient.Config.CSVMetadata[index].IDStruct.ID = object.ID
 				return nil

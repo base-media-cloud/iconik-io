@@ -3,7 +3,7 @@
 package iconikio
 
 type IconikRepo interface {
-	GetCollection(collectionID string) error
+	GetCollection(collectionID string, pageNo int) error
 	GetMetadata() error
 	PrepMetadataForWriting() ([][]string, error)
 	ReadCSVFile() ([][]string, error)
