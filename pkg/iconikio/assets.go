@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,10 +16,7 @@ import (
 )
 
 // GetCollection gets all the results from a collection and return the full object list with metadata.
-func (i *Iconik) GetCollection(collectionID string) error {
-
-	var c *Collection
-
+func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
 	if err != nil {
 		return err
@@ -31,7 +29,8 @@ func (i *Iconik) GetCollection(collectionID string) error {
 
 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
 	queryParams := u.Query()
-	queryParams.Set("per_page", "10000")
+	queryParams.Set("per_page", "500")
+	queryParams.Set("page", strconv.Itoa(pageNo))
 	u.RawQuery = queryParams.Encode()
 
 	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
@@ -44,16 +43,28 @@ func (i *Iconik) GetCollection(collectionID string) error {
 		return err
 	}
 
-	err = json.Unmarshal(jsonNoNull, &c)
-	if err != nil {
-		return err
+	switch {
+	case pageNo == 1:
+		err = json.Unmarshal(jsonNoNull, &i.IconikClient.Collection)
+		if err != nil {
+			return err
+		}
+	case pageNo > 1:
+		var c *Collection
+		err = json.Unmarshal(jsonNoNull, &c)
+		if err != nil {
+			return err
+		}
+		i.IconikClient.Collection.Objects = append(i.IconikClient.Collection.Objects, c.Objects...)
 	}
 
-	if len(c.Errors) != 0 {
-		return fmt.Errorf(strings.Join(c.Errors, ", "))
+	if len(i.IconikClient.Collection.Errors) != 0 {
+		return fmt.Errorf(strings.Join(i.IconikClient.Collection.Errors, ", "))
 	}
 
-	i.IconikClient.Collection = c
+	for n := i.IconikClient.Collection.Pages; n > pageNo; n++ {
+		i.GetCollection(collectionID, pageNo+1)
+	}
 
 	return nil
 }
@@ -66,7 +77,7 @@ func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) er
 				assetsMap[object.ID] = struct{}{}
 			}
 		} else if object.ObjectType == "collections" {
-			err := i.GetCollection(object.ID)
+			err := i.GetCollection(object.ID, 1)
 			if err != nil {
 				fmt.Println("Error fetching data for collection with ID", object.ID, "Error:", err)
 				continue

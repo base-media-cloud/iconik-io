@@ -2,8 +2,9 @@ package iconikio
 
 import (
 	"fmt"
-	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"net/http"
+
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 )
 
 type Iconik struct {
@@ -38,6 +39,7 @@ type Config struct {
 type Collection struct {
 	Objects []*Object `json:"objects"`
 	Errors  []string  `json:"errors"`
+	Pages   int
 }
 
 // Object acts as a non nested struct to the Objects type in Collection.

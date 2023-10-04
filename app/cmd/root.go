@@ -3,12 +3,14 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"github.com/base-media-cloud/pd-iconik-io-rd/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 )
 
 var (
@@ -58,7 +60,7 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	// Get Collection using given Collection ID
-	err = app.Iconik.GetCollection(cfg.CollectionID)
+	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
 	if err != nil {
 		return err
 	}
