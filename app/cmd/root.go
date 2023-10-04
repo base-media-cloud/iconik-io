@@ -60,7 +60,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	// Get Collection using given Collection ID
-	// IF PAGES > 1, RUN GET COLLECTION AGAIN
 	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
 	if err != nil {
 		return err

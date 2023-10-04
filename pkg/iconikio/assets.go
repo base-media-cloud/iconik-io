@@ -17,9 +17,6 @@ import (
 
 // GetCollection gets all the results from a collection and return the full object list with metadata.
 func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
-
-	var c *Collection
-
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
 	if err != nil {
 		return err
@@ -46,18 +43,26 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 		return err
 	}
 
-	err = json.Unmarshal(jsonNoNull, &c)
-	if err != nil {
-		return err
+	switch {
+	case pageNo == 1:
+		err = json.Unmarshal(jsonNoNull, &i.IconikClient.Collection)
+		if err != nil {
+			return err
+		}
+	case pageNo > 1:
+		var c *Collection
+		err = json.Unmarshal(jsonNoNull, &c)
+		if err != nil {
+			return err
+		}
+		i.IconikClient.Collection.Objects = append(i.IconikClient.Collection.Objects, c.Objects...)
 	}
 
-	if len(c.Errors) != 0 {
-		return fmt.Errorf(strings.Join(c.Errors, ", "))
+	if len(i.IconikClient.Collection.Errors) != 0 {
+		return fmt.Errorf(strings.Join(i.IconikClient.Collection.Errors, ", "))
 	}
 
-	i.IconikClient.Collection.Objects = append(i.IconikClient.Collection.Objects, c.Objects...)
-
-	if c.Pages > 1 && c.Pages > pageNo {
+	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
 		i.GetCollection(collectionID, pageNo+1)
 	}
 
