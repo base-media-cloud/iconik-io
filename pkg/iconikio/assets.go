@@ -62,7 +62,7 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 		return fmt.Errorf(strings.Join(i.IconikClient.Collection.Errors, ", "))
 	}
 
-	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
+	for n := i.IconikClient.Collection.Pages; n > pageNo; n++ {
 		i.GetCollection(collectionID, pageNo+1)
 	}
 
