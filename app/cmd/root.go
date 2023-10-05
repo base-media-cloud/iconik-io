@@ -16,7 +16,7 @@ import (
 var (
 	app     Application
 	build   string
-	version string
+	version = "0.03"
 )
 
 type Application struct {
