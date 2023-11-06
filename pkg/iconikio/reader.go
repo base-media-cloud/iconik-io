@@ -166,7 +166,7 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if csvMetadata.Added {
 			countSuccess++
-			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
+			// log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
 	fmt.Printf("%d of %d", countSuccess, i.IconikClient.Config.CSVFilesToUpdate)
@@ -177,7 +177,7 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if !csvMetadata.Added {
 			countFailed++
-			// log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
+			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
 	fmt.Printf("%d of %d\n", countFailed, i.IconikClient.Config.CSVFilesToUpdate)
