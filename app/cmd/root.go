@@ -25,8 +25,6 @@ type Application struct {
 }
 
 func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
-
-	// Add logger to part of our Application struct and log
 	app.Logger = l
 	app.Logger.Infow("starting service", zapcore.Field{
 		Key:    "build",
@@ -35,7 +33,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	})
 	defer app.Logger.Infow("shutdown complete")
 
-	// Parse command line flags, store in Config struct
 	cfg, err := argParse()
 	if err != nil {
 		return err
@@ -66,7 +63,8 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	assetsMap := make(map[string]struct{})
-	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap)
+	collectionsMap := make(map[string]struct{})
+	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap, collectionsMap)
 	if err != nil {
 		return err
 	}

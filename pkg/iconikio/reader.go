@@ -27,7 +27,7 @@ func (i *Iconik) ReadCSVFile() ([][]string, error) {
 	// read all the CSV data into a 2D slice we can work with
 	csvData, err := csvReader.ReadAll()
 	if err != nil {
-		//return errors.New("error reading CSV file")
+		// return errors.New("error reading CSV file")
 		return nil, err
 	}
 
@@ -83,9 +83,10 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	// get the file Header Labels row
 	matchingFileHeaderLabels := matchingData[1]
 
+	i.IconikClient.Config.CSVFilesToUpdate = len(matchingData) - 2
+	fmt.Println("Amount of files to update:", i.IconikClient.Config.CSVFilesToUpdate)
+
 	for index := 2; index < len(matchingData); index++ {
-		fmt.Println()
-		fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 		row := matchingData[index]
 
 		// Create a new instance of CSVMetadata.
@@ -109,13 +110,10 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 
 		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
 
-		log.Printf("Attempting to update metadata for asset ID %s from row %d of the provided file:", csvMetadata.IDStruct.ID, index-1)
-
 		err := i.validateAssetID(index - 2)
 		err2 := i.validateFilename(index - 2)
 		if err != nil && err2 != nil {
 			log.Printf("%s & %s, skipping\n", err, err2)
-			fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 			continue
 		}
 		csvMetadata.Added = true
@@ -160,25 +158,29 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 			return err
 		}
 
-		fmt.Println("//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////")
 	}
 
 	fmt.Println()
 	log.Println("Assets successfully updated:")
+	var countSuccess int
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if csvMetadata.Added {
+			countSuccess++
 			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
+	fmt.Printf("%d of %d", countSuccess, i.IconikClient.Config.CSVFilesToUpdate)
 
 	fmt.Println()
 	log.Println("Assets that failed to update:")
+	var countFailed int
 	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
 		if !csvMetadata.Added {
-			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
+			countFailed++
+			// log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
-	fmt.Println()
+	fmt.Printf("%d of %d\n", countFailed, i.IconikClient.Config.CSVFilesToUpdate)
 
 	return nil
 }
@@ -204,7 +206,7 @@ func (i *Iconik) updateTitle(index int) error {
 	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
 
 	if res.StatusCode == 200 {
-		log.Printf("Successfully updated title name for asset %s (%s)", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
+		// log.Printf("Successfully updated title name for asset %s (%s)", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
 	} else {
 		log.Println("Error updating title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 		log.Println("resBody:", string(resBody))
@@ -241,7 +243,7 @@ func (i *Iconik) updateMetadata(index int) error {
 	}
 
 	if res.StatusCode == 200 {
-		log.Println("Successfully updated metadata for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+		log.Printf("Successfully updated metadata for asset %s (%s)", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
 	} else {
 		log.Println("Error updating metadata for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
 		log.Println("resBody:", string(resBody))

@@ -44,12 +44,12 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	}
 
 	switch {
-	case pageNo == 1:
+	default:
 		err = json.Unmarshal(jsonNoNull, &i.IconikClient.Collection)
 		if err != nil {
 			return err
 		}
-	case pageNo > 1:
+	case i.IconikClient.Collection != nil:
 		var c *Collection
 		err = json.Unmarshal(jsonNoNull, &c)
 		if err != nil {
@@ -69,7 +69,7 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	return nil
 }
 
-func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) error {
+func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
 	for _, object := range c.Objects {
 		if object.ObjectType == "assets" {
 			if _, exists := assetsMap[object.ID]; !exists {
@@ -77,12 +77,17 @@ func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) er
 				assetsMap[object.ID] = struct{}{}
 			}
 		} else if object.ObjectType == "collections" {
-			err := i.GetCollection(object.ID, 1)
-			if err != nil {
-				fmt.Println("Error fetching data for collection with ID", object.ID, "Error:", err)
-				continue
+			if _, exists := collectionsMap[object.ID]; !exists {
+				fmt.Println()
+				fmt.Printf("found collection %s, traversing:\n", object.Title)
+				err := i.GetCollection(object.ID, 1)
+				if err != nil {
+					fmt.Println("Error fetching data for collection with ID", object.ID, "Error:", err)
+					continue
+				}
+				collectionsMap[object.ID] = struct{}{}
+				i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap)
 			}
-			i.ProcessObjects(i.IconikClient.Collection, assetsMap)
 		}
 	}
 	return nil
@@ -90,7 +95,6 @@ func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) er
 
 // GetMetadata gets the metadata using the given metadata view ID.
 func (i *Iconik) GetMetadata() error {
-
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path)
 	if err != nil {
 		return err
@@ -131,7 +135,6 @@ func (i *Iconik) GetMetadata() error {
 }
 
 func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
-
 	var metadataFile [][]string
 	var csvColumnsName []string
 	var csvColumnsLabel []string
@@ -194,8 +197,6 @@ func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
 }
 
 func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
-
-	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
 	filePath := i.IconikClient.Config.Output + filename
@@ -220,8 +221,6 @@ func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
 }
 
 func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
-
-	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.xlsx", today)
 	filePath := i.IconikClient.Config.Output + filename

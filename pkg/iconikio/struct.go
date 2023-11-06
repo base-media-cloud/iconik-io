@@ -21,17 +21,18 @@ type Client struct {
 // Config is the structure that holds the key variables required
 // in the execution of the service.
 type Config struct {
-	IconikURL    string
-	AppID        string
-	AuthToken    string
-	CollectionID string
-	ViewID       string
-	Input        string
-	Output       string
-	Excel        bool
-	CSV          bool
-	APIConfig    *APIConfig
-	CSVMetadata  []*CSVMetadata
+	IconikURL        string
+	AppID            string
+	AuthToken        string
+	CollectionID     string
+	ViewID           string
+	Input            string
+	Output           string
+	Excel            bool
+	CSV              bool
+	APIConfig        *APIConfig
+	CSVFilesToUpdate int
+	CSVMetadata      []*CSVMetadata
 }
 
 // Collection is the top level data structure that receives the unmarshalled payload
