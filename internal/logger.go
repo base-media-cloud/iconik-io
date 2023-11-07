@@ -1,3 +1,7 @@
+/*
+Package logger contains the logger initialisation.
+The logger we use is zerolog.
+*/
 package logger
 
 import (

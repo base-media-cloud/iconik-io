@@ -1,3 +1,6 @@
+/*
+Package cmd executes the commands required to run the application.
+*/
 package cmd
 
 import (
@@ -16,7 +19,7 @@ import (
 var (
 	app     Application
 	build   string
-	version = "0.03"
+	version = "0.04"
 )
 
 type Application struct {
@@ -25,8 +28,6 @@ type Application struct {
 }
 
 func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
-
-	// Add logger to part of our Application struct and log
 	app.Logger = l
 	app.Logger.Infow("starting service", zapcore.Field{
 		Key:    "build",
@@ -35,7 +36,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	})
 	defer app.Logger.Infow("shutdown complete")
 
-	// Parse command line flags, store in Config struct
 	cfg, err := argParse()
 	if err != nil {
 		return err
@@ -66,7 +66,8 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	assetsMap := make(map[string]struct{})
-	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap)
+	collectionsMap := make(map[string]struct{})
+	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap, collectionsMap)
 	if err != nil {
 		return err
 	}

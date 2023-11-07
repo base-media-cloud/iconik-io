@@ -10,6 +10,6 @@ type IconikRepo interface {
 	WriteCSVFile(metadataFile [][]string) error
 	ReadExcelFile() ([][]string, error)
 	WriteExcelFile(metadataFile [][]string) error
-	ProcessObjects(c *Collection, assetsMap map[string]struct{}) error
+	ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error
 	UpdateIconik(metadataFile [][]string) error
 }

@@ -44,12 +44,12 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	}
 
 	switch {
-	case pageNo == 1:
+	default:
 		err = json.Unmarshal(jsonNoNull, &i.IconikClient.Collection)
 		if err != nil {
 			return err
 		}
-	case pageNo > 1:
+	case i.IconikClient.Collection != nil:
 		var c *Collection
 		err = json.Unmarshal(jsonNoNull, &c)
 		if err != nil {
@@ -63,26 +63,35 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	}
 
 	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
-		i.GetCollection(collectionID, pageNo+1)
+		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) error {
-	for _, object := range c.Objects {
-		if object.ObjectType == "assets" {
-			if _, exists := assetsMap[object.ID]; !exists {
-				i.IconikClient.Assets = append(i.IconikClient.Assets, object)
-				assetsMap[object.ID] = struct{}{}
+func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
+	for _, o := range c.Objects {
+		if o.ObjectType == "assets" {
+			if _, exists := assetsMap[o.ID]; !exists {
+				i.IconikClient.Assets = append(i.IconikClient.Assets, o)
+				assetsMap[o.ID] = struct{}{}
 			}
-		} else if object.ObjectType == "collections" {
-			err := i.GetCollection(object.ID, 1)
-			if err != nil {
-				fmt.Println("Error fetching data for collection with ID", object.ID, "Error:", err)
-				continue
+		} else if o.ObjectType == "collections" {
+			if _, exists := collectionsMap[o.ID]; !exists {
+				fmt.Println()
+				fmt.Printf("found collection %s, traversing:\n", o.Title)
+				err := i.GetCollection(o.ID, 1)
+				if err != nil {
+					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
+					continue
+				}
+				collectionsMap[o.ID] = struct{}{}
+				if err := i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap); err != nil {
+					return err
+				}
 			}
-			i.ProcessObjects(i.IconikClient.Collection, assetsMap)
 		}
 	}
 	return nil
@@ -90,7 +99,6 @@ func (i *Iconik) ProcessObjects(c *Collection, assetsMap map[string]struct{}) er
 
 // GetMetadata gets the metadata using the given metadata view ID.
 func (i *Iconik) GetMetadata() error {
-
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path)
 	if err != nil {
 		return err
@@ -131,7 +139,6 @@ func (i *Iconik) GetMetadata() error {
 }
 
 func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
-
 	var metadataFile [][]string
 	var csvColumnsName []string
 	var csvColumnsLabel []string
@@ -194,8 +201,6 @@ func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
 }
 
 func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
-
-	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.csv", today)
 	filePath := i.IconikClient.Config.Output + filename
@@ -220,8 +225,6 @@ func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
 }
 
 func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
-
-	// Get today's date and time
 	today := time.Now().Format("2006-01-02_150405")
 	filename := fmt.Sprintf("%s.xlsx", today)
 	filePath := i.IconikClient.Config.Output + filename
@@ -230,7 +233,9 @@ func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
 	// Create the excel file
 	excelFile := excelize.NewFile()
 	defer excelFile.Close()
-	excelFile.SetSheetName("Sheet1", sheetName)
+	if err := excelFile.SetSheetName("Sheet1", sheetName); err != nil {
+		return err
+	}
 
 	for i, row := range metadataFile {
 		startCell, err := excelize.JoinCellName("A", i+1)

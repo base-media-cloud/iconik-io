@@ -3,7 +3,6 @@ package iconikio
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -77,8 +76,6 @@ func isBlankStringArray(arr []string) bool {
 }
 
 func (i *Iconik) getResponseBody(method, uri string, params io.Reader) (*http.Response, []byte, error) {
-	log.Println(uri)
-
 	client := &http.Client{}
 	req, err := http.NewRequest(method, uri, params)
 	if err != nil {
