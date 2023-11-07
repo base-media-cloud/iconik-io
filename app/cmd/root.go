@@ -1,3 +1,6 @@
+/*
+Package cmd executes the commands required to run the application.
+*/
 package cmd
 
 import (

@@ -63,30 +63,34 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	}
 
 	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
-		i.GetCollection(collectionID, pageNo+1)
+		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
-	for _, object := range c.Objects {
-		if object.ObjectType == "assets" {
-			if _, exists := assetsMap[object.ID]; !exists {
-				i.IconikClient.Assets = append(i.IconikClient.Assets, object)
-				assetsMap[object.ID] = struct{}{}
+	for _, o := range c.Objects {
+		if o.ObjectType == "assets" {
+			if _, exists := assetsMap[o.ID]; !exists {
+				i.IconikClient.Assets = append(i.IconikClient.Assets, o)
+				assetsMap[o.ID] = struct{}{}
 			}
-		} else if object.ObjectType == "collections" {
-			if _, exists := collectionsMap[object.ID]; !exists {
+		} else if o.ObjectType == "collections" {
+			if _, exists := collectionsMap[o.ID]; !exists {
 				fmt.Println()
-				fmt.Printf("found collection %s, traversing:\n", object.Title)
-				err := i.GetCollection(object.ID, 1)
+				fmt.Printf("found collection %s, traversing:\n", o.Title)
+				err := i.GetCollection(o.ID, 1)
 				if err != nil {
-					fmt.Println("Error fetching data for collection with ID", object.ID, "Error:", err)
+					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
 					continue
 				}
-				collectionsMap[object.ID] = struct{}{}
-				i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap)
+				collectionsMap[o.ID] = struct{}{}
+				if err := i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -229,7 +233,9 @@ func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
 	// Create the excel file
 	excelFile := excelize.NewFile()
 	defer excelFile.Close()
-	excelFile.SetSheetName("Sheet1", sheetName)
+	if err := excelFile.SetSheetName("Sheet1", sheetName); err != nil {
+		return err
+	}
 
 	for i, row := range metadataFile {
 		startCell, err := excelize.JoinCellName("A", i+1)

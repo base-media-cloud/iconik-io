@@ -141,7 +141,6 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 		if err != nil {
 			return err
 		}
-
 	}
 
 	fmt.Println()
