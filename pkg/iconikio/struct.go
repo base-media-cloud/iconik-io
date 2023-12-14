@@ -59,7 +59,7 @@ type File struct {
 	Id            string `json:"id"`
 	Name          string `json:"name"`
 	OriginalName  string `json:"original_name"`
-	Size          int64  `json:"size"`
+	Size          int    `json:"size"`
 	Status        string `json:"status"`
 	StorageId     string `json:"storage_id"`
 	StorageMethod string `json:"storage_method"`

@@ -151,16 +151,17 @@ func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
 	}
 
 	// Write the header row
-	headerRow := append([]string{"id", "original_name", "title"}, csvColumnsLabel...)
+	headerRow := append([]string{"id", "original_name", "size", "title"}, csvColumnsLabel...)
 	metadataFile = append(metadataFile, headerRow)
 	numColumns := len(csvColumnsName)
 
 	// Loop through all assets
 	for _, object := range i.IconikClient.Assets {
-		row := make([]string, numColumns+3)
+		row := make([]string, numColumns+4)
 		row[0] = object.ID
 		row[1] = object.Files[0].OriginalName
-		row[2] = object.Title
+		row[2] = strconv.Itoa(object.Files[0].Size)
+		row[3] = object.Title
 
 		for i := 0; i < numColumns; i++ {
 			metadataField := csvColumnsName[i]
@@ -187,9 +188,9 @@ func (i *Iconik) PrepMetadataForWriting() ([][]string, error) {
 			}
 
 			if len(result) > 1 {
-				row[i+3] = strings.Join(result, ",")
+				row[i+4] = strings.Join(result, ",")
 			} else {
-				row[i+3] = strings.Join(result, "")
+				row[i+4] = strings.Join(result, "")
 			}
 
 		}
