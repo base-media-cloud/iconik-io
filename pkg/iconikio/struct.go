@@ -53,7 +53,16 @@ type Object struct {
 }
 
 type File struct {
-	OriginalName string `json:"original_name"`
+	DirectoryPath string `json:"directory_path"`
+	FileSetId     string `json:"file_set_id"`
+	FormatId      string `json:"format_id"`
+	Id            string `json:"id"`
+	Name          string `json:"name"`
+	OriginalName  string `json:"original_name"`
+	Size          int64  `json:"size"`
+	Status        string `json:"status"`
+	StorageId     string `json:"storage_id"`
+	StorageMethod string `json:"storage_method"`
 }
 
 // ====================================================
