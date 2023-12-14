@@ -119,6 +119,7 @@ type CSVMetadata struct {
 	Added                bool
 	IDStruct             IDStruct
 	OriginalNameStruct   OriginalNameStruct
+	SizeStruct           SizeStruct
 	TitleStruct          TitleStruct
 	MetadataValuesStruct MetadataValuesStruct
 }
@@ -129,6 +130,10 @@ type IDStruct struct {
 
 type OriginalNameStruct struct {
 	OriginalName string `json:"original_name"`
+}
+
+type SizeStruct struct {
+	Size string `json:"size"`
 }
 
 type TitleStruct struct {
