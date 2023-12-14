@@ -35,7 +35,8 @@ Input mode takes a pre-populated CSV file conforming to the respective schema co
 ```bash
 $ pd-iconik-io-rd -input input.csv -app-id <AppID> \
 -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url \ 
-<IconikURL> -metadata-view-id <ViewID>
+<IconikURL> -metadata-view-id <ViewID> \
+-csv
 ```
 
 ##### Schema constraints
@@ -43,22 +44,23 @@ $ pd-iconik-io-rd -input input.csv -app-id <AppID> \
 - First row MUST be a header row.
 - R1C1 MUST be `id`.
 - R1C2 MUST be `original_name`.
-- R1C3 MUST be `title`.
-- R1C4 -> R1Cn are the name attributes of the metadata fields in the view you want to manipulate.
+- R1C3 MUST be `size`.
+- R1C4 MUST be `title`.
+- R1C5 -> R1Cn are the name attributes of the metadata fields in the view you want to manipulate.
 - First column MUST always be the UUID of the asset.
 - Second column MUST always be the original filename of the asset.
 - Third column MUST always be the title of the asset.
-- Columns 4->n are the values of the metadata fields in R1.
+- Columns 5->n are the values of the metadata fields in R1.
 - If a field can have multiple values (e.g., Tags), they must be comma separated in the appropriate cell.
 - If a field is boolean, it must be either true or false.
 
 
 ##### Example CSV
 
-| id     | original_name | title               | field1_name   | field2_name                    | bool_field_name |  
-|--------|---------------|---------------------|---------------|--------------------------------|-----------------|  
-| `UUID` | filename1.mp4 | My asset title      | Field 1 Value | Field 2 Value1, Field 2 Value2 | `true`          |  
-| `UUID` | filename2.mp4 | Another asset title | Field 1 Value | Field 2 Value1, Field 2 Value2 | `false`         |
+| id     | original_name | size   | title               | field1_name   | field2_name                    | bool_field_name |  
+|--------|---------------|--------|---------------------|---------------|--------------------------------|-----------------|  
+| `UUID` | filename1.mp4 | 176985 | My asset title      | Field 1 Value | Field 2 Value1, Field 2 Value2 | `true`          |  
+| `UUID` | filename2.mp4 | 176985 | Another asset title | Field 1 Value | Field 2 Value1, Field 2 Value2 | `false`         |
 
 
 The command line arguments required by input mode are listed in Table 2 – Input command-line arguments.
@@ -87,7 +89,7 @@ Output mode creates a CSV file conforming to the respective schema constraints, 
 ```bash
 $ pd-iconik-io-rd -output ~/Desktop -app-id <AppID> \
 -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url \ 
-<IconikURL> -metadata-view-id <ViewID>
+<IconikURL> -metadata-view-id <ViewID> -csv
 ```
 
 The command line arguments required by output mode are listed in Table 3 – Output command-line arguments.
@@ -102,6 +104,7 @@ Table 3 – Output command-line arguments
 | `-collection-id <UUID>`    | YES                                | UUID of collection containing assets you want to include in CSV    |
 | `app-id <UUID>`            | YES                                | App ID (provided by iconik)                                        |
 | `auth-token <JWT>`         | YES                                | Auth token (provided by iconik)                                    |
+| `csv / excel`              | YES                                | Define the format type                                             |
 
 
 
@@ -127,15 +130,17 @@ Table 3 – Output command-line arguments
 -auth-token #the JWT bearer Token generated in the iconik UI.
 -collection-id #the ID of the collection in iconik where the assets reside.
 -metadata-view-id #the ID of the Metadata View of interest.
+-csv #select csv output.
+-excel #select excel output.
+
 ```
 
 ##### Notes
 
 If neither `input` or `output` mode is selected, the tool will display the version, and then exit.
+The `size` value is returned in Bytes.
 
 The tool will also recursively traverse collections in iconik. Therefore, if you provide the top-level collection ID, it will search through all the collections nested within it for assets.
-
-
 
 
 ## License
