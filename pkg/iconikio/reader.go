@@ -51,7 +51,7 @@ func (i *Iconik) ReadExcelFile() ([][]string, error) {
 func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	csvHeaders := metadataFile[0]
 
-	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "title" {
+	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
 		fmt.Println(csvHeaders)
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
@@ -75,7 +75,7 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	i.IconikClient.Config.CSVFilesToUpdate = len(matchingData) - 2
 	fmt.Println("Amount of files to update:", i.IconikClient.Config.CSVFilesToUpdate)
 
-	for index := 2; index < len(matchingData); index++ {
+	for index := 3; index < len(matchingData); index++ {
 		row := matchingData[index]
 
 		csvMetadata := CSVMetadata{
@@ -86,8 +86,11 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 			OriginalNameStruct: OriginalNameStruct{
 				OriginalName: row[1],
 			},
+			SizeStruct: SizeStruct{
+				Size: row[2],
+			},
 			TitleStruct: TitleStruct{
-				Title: row[2],
+				Title: row[3],
 			},
 			MetadataValuesStruct: MetadataValuesStruct{
 				MetadataValues: make(map[string]struct {
@@ -98,15 +101,15 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 
 		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
 
-		err := i.validateAssetID(index - 2)
-		err2 := i.validateFilename(index - 2)
+		err := i.validateAssetID(index - 3)
+		err2 := i.validateFilename(index - 3)
 		if err != nil && err2 != nil {
 			log.Printf("%s & %s, skipping\n", err, err2)
 			continue
 		}
 		csvMetadata.Added = true
 
-		for count := 3; count < len(row); count++ {
+		for count := 4; count < len(row); count++ {
 			headerName := matchingFileHeaderNames[count]
 			headerLabel := matchingFileHeaderLabels[count]
 			fieldValueSlice := make([]FieldValue, 0)
@@ -132,12 +135,12 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 			}
 		}
 
-		err = i.updateTitle(index - 2)
+		err = i.updateTitle(index - 3)
 		if err != nil {
 			return err
 		}
 
-		err = i.updateMetadata(index - 2)
+		err = i.updateMetadata(index - 3)
 		if err != nil {
 			return err
 		}
