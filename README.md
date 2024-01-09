@@ -35,8 +35,7 @@ Input mode takes a pre-populated CSV file conforming to the respective schema co
 ```bash
 $ pd-iconik-io-rd -input input.csv -app-id <AppID> \
 -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url \ 
-<IconikURL> -metadata-view-id <ViewID> \
--csv
+<IconikURL> -metadata-view-id <ViewID>
 ```
 
 ##### Schema constraints
@@ -89,7 +88,7 @@ Output mode creates a CSV file conforming to the respective schema constraints, 
 ```bash
 $ pd-iconik-io-rd -output ~/Desktop -app-id <AppID> \
 -auth-token <AuthToken> -collection-id <CollectionID> -iconik-url \ 
-<IconikURL> -metadata-view-id <ViewID> -csv
+<IconikURL> -metadata-view-id <ViewID>
 ```
 
 The command line arguments required by output mode are listed in Table 3 – Output command-line arguments.
@@ -104,7 +103,6 @@ Table 3 – Output command-line arguments
 | `-collection-id <UUID>`    | YES                                | UUID of collection containing assets you want to include in CSV    |
 | `app-id <UUID>`            | YES                                | App ID (provided by iconik)                                        |
 | `auth-token <JWT>`         | YES                                | Auth token (provided by iconik)                                    |
-| `csv / excel`              | YES                                | Define the format type                                             |
 
 
 
@@ -130,8 +128,6 @@ Table 3 – Output command-line arguments
 -auth-token #the JWT bearer Token generated in the iconik UI.
 -collection-id #the ID of the collection in iconik where the assets reside.
 -metadata-view-id #the ID of the Metadata View of interest.
--csv #select csv output.
--excel #select excel output.
 
 ```
 

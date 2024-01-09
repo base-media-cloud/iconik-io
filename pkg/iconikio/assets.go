@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/xuri/excelize/v2"
 )
 
 // GetCollection gets all the results from a collection and return the full object list with metadata.
@@ -222,36 +220,5 @@ func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
 	}
 
 	log.Println("CSV file successfully saved to", filePath)
-	return nil
-}
-
-func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.xlsx", today)
-	filePath := i.IconikClient.Config.Output + filename
-	sheetName := today
-
-	// Create the excel file
-	excelFile := excelize.NewFile()
-	defer excelFile.Close()
-	if err := excelFile.SetSheetName("Sheet1", sheetName); err != nil {
-		return err
-	}
-
-	for i, row := range metadataFile {
-		startCell, err := excelize.JoinCellName("A", i+1)
-		if err != nil {
-			return err
-		}
-		if err := excelFile.SetSheetRow(sheetName, startCell, &row); err != nil {
-			return err
-		}
-	}
-
-	if err := excelFile.SaveAs(filePath); err != nil {
-		return err
-	}
-
-	log.Println("Excel file successfully saved to", filePath)
 	return nil
 }

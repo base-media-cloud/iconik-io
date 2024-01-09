@@ -6,11 +6,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
@@ -67,7 +65,7 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	if cfg.Output != "" && cfg.CSV {
+	if cfg.Output != "" {
 		metadataFile, err := app.Iconik.PrepMetadataForWriting()
 		if err != nil {
 			return err
@@ -79,7 +77,7 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		}
 	}
 
-	if filepath.Ext(cfg.Input) == ".csv" {
+	if cfg.Input != "" {
 		fmt.Println()
 		fmt.Println("Inputting data from provided CSV file:")
 
