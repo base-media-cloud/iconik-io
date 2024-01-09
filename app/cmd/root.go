@@ -44,22 +44,17 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return nil
 	}
 
-	// Create new Iconik Client struct
 	iconikClient := iconikio.New(cfg)
 
-	// Populate Iconik URL struct
 	iconikClient.NewAPIConfig(appCfg)
 
-	// Attach Iconik Client to Iconik Repo interface
 	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}
 
-	// Get Metadata using given Metadata ID
 	err = app.Iconik.GetMetadata()
 	if err != nil {
 		return err
 	}
 
-	// Get Collection using given Collection ID
 	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
 	if err != nil {
 		return err
@@ -72,41 +67,13 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	if cfg.Output != "" && cfg.Excel {
-		// Build CSV and output
-		metadataFile, err := app.Iconik.PrepMetadataForWriting()
-		if err != nil {
-			return err
-		}
-
-		err = app.Iconik.WriteExcelFile(metadataFile)
-		if err != nil {
-			return err
-		}
-	}
-
 	if cfg.Output != "" && cfg.CSV {
-		// Build CSV and output
 		metadataFile, err := app.Iconik.PrepMetadataForWriting()
 		if err != nil {
 			return err
 		}
 
 		err = app.Iconik.WriteCSVFile(metadataFile)
-		if err != nil {
-			return err
-		}
-	}
-
-	if filepath.Ext(cfg.Input) == ".xlsx" {
-		fmt.Println()
-		fmt.Println("Inputting data from provided Excel file:")
-
-		excelData, err := app.Iconik.ReadExcelFile()
-		if err != nil {
-			return err
-		}
-		err = app.Iconik.UpdateIconik(excelData)
 		if err != nil {
 			return err
 		}
@@ -140,8 +107,6 @@ func argParse() (*iconikio.Config, error) {
 	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
-	flag.BoolVar(&cfg.Excel, "excel", false, "Select Excel output")
-	flag.BoolVar(&cfg.CSV, "csv", false, "Select CSV output")
 	ver := flag.Bool("version", false, "Print version")
 	flag.Parse()
 
@@ -173,8 +138,8 @@ func argParse() (*iconikio.Config, error) {
 		versionInfo()
 		return nil, nil
 	}
-	if cfg.Output != "" && !cfg.Excel && !cfg.CSV {
-		app.Logger.Infoln("Neither excel or csv file format selected")
+	if cfg.Input != "" && cfg.Output != "" {
+		app.Logger.Infoln("Both input and output mode selected. Please only select one")
 		versionInfo()
 		return nil, nil
 	}
