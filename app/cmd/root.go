@@ -59,6 +59,17 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
+	col, err := app.Iconik.GetCol(cfg.CollectionID, 1)
+	if err != nil {
+		return err
+	}
+
+	objs, err := app.Iconik.ProcessObjs(col)
+	if err != nil {
+		return err
+	}
+	fmt.Println(objs)
+
 	// Get Collection using given Collection ID
 	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
 	if err != nil {

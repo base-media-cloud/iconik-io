@@ -15,7 +15,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// GetCollection gets all the results from a collection and return the full object list with metadata.
 func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
 	if err != nil {
@@ -69,6 +68,67 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 	}
 
 	return nil
+}
+
+// GetCollection gets all the results from a collection and return the full object list with metadata.
+func (i *Iconik) GetCol(collectionID string, pageNo int) (*Collection, error) {
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(result)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+	queryParams := u.Query()
+	queryParams.Set("per_page", "2")
+	queryParams.Set("page", strconv.Itoa(pageNo))
+	u.RawQuery = queryParams.Encode()
+
+	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var c *Collection
+	if err = json.Unmarshal(resBody, &c); err != nil {
+		return nil, err
+	}
+
+	if c.Pages > pageNo {
+		nextPage, err := i.GetCol(collectionID, pageNo+1)
+		if err != nil {
+			return nil, err
+		}
+		c.Objects = append(c.Objects, nextPage.Objects...)
+	}
+
+	return c, nil
+}
+
+func (i *Iconik) ProcessObjs(c *Collection) ([]*Object, error) {
+	var output []*Object
+
+	for j := range c.Objects {
+		if c.Objects[j].ObjectType == "collections" {
+			col, err := i.GetCol(c.Objects[j].ID, 1)
+			if err != nil {
+				return nil, err
+			}
+			newObjs, err := i.ProcessObjs(col)
+			if err != nil {
+				return nil, err
+			}
+			output = append(output, newObjs...)
+			continue
+		}
+		output = append(output, c.Objects[j])
+	}
+
+	return output, nil
 }
 
 func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
