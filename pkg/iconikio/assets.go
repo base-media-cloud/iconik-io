@@ -165,8 +165,12 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 	for _, object := range objs {
 		row := make([]string, numColumns+4)
 		row[0] = object.ID
-		row[1] = object.Files[0].OriginalName
-		row[2] = strconv.Itoa(object.Files[0].Size)
+		row[1] = "N/A"
+		row[2] = "N/A"
+		if len(object.Files) > 0 {
+			row[1] = object.Files[0].OriginalName
+			row[2] = strconv.Itoa(object.Files[0].Size)
+		}
 		row[3] = object.Title
 
 		for i := 0; i < numColumns; i++ {
