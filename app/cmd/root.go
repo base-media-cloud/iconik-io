@@ -4,6 +4,8 @@ Package cmd executes the commands required to run the application.
 package cmd
 
 import (
+	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -59,42 +61,38 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	col, err := app.Iconik.GetCol(cfg.CollectionID, 1)
+	csvFile, err := os.Create("test.csv")
 	if err != nil {
+		return errors.New("error creating CSV file")
+	}
+	defer csvFile.Close()
+
+	if err = app.Iconik.GetCol(cfg.CollectionID, 1, csv.NewWriter(csvFile)); err != nil {
 		return err
 	}
 
-	objs, err := app.Iconik.ProcessObjs(col)
-	if err != nil {
-		return err
-	}
-	fmt.Println(objs)
+	// csvFile, err := os.Create("test.csv")
+	// if err != nil {
+	// 	return errors.New("error creating CSV file")
+	// }
+	// defer csvFile.Close()
+	//
+	// if err = app.Iconik.ProcessObjs(col, csv.NewWriter(csvFile)); err != nil {
+	// 	return err
+	// }
 
-	// Get Collection using given Collection ID
-	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
-	if err != nil {
-		return err
-	}
-
-	assetsMap := make(map[string]struct{})
-	collectionsMap := make(map[string]struct{})
-	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap, collectionsMap)
-	if err != nil {
-		return err
-	}
-
-	if cfg.Output != "" && cfg.Excel {
-		// Build CSV and output
-		metadataFile, err := app.Iconik.PrepMetadataForWriting()
-		if err != nil {
-			return err
-		}
-
-		err = app.Iconik.WriteExcelFile(metadataFile)
-		if err != nil {
-			return err
-		}
-	}
+	// if cfg.Output != "" && cfg.Excel {
+	// 	// Build CSV and output
+	// 	metadataFile, err := app.Iconik.PrepMetadataForWriting()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	//
+	// 	err = app.Iconik.WriteExcelFile(metadataFile)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	if cfg.Output != "" && cfg.CSV {
 		// Build CSV and output
