@@ -8,8 +8,9 @@ import (
 
 type IconikRepo interface {
 	GetCol(collectionID string, pageNo int, w *csv.Writer) error
+	GetHeaders() [][]string
+	PrepMetadata(objs []*Object) ([][]string, error)
 	GetMetadata() error
-	PrepMetadataForWriting() ([][]string, error)
 	ReadCSVFile() ([][]string, error)
 	WriteCSVFile(metadataFile [][]string) error
 	ReadExcelFile() ([][]string, error)

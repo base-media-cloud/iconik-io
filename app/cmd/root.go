@@ -61,50 +61,20 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	csvFile, err := os.Create("test.csv")
+	csvFile, err := os.Create("report.csv")
 	if err != nil {
 		return errors.New("error creating CSV file")
 	}
 	defer csvFile.Close()
 
-	if err = app.Iconik.GetCol(cfg.CollectionID, 1, csv.NewWriter(csvFile)); err != nil {
+	// Add Headers
+	w := csv.NewWriter(csvFile)
+	if err = w.WriteAll(app.Iconik.GetHeaders()); err != nil {
 		return err
 	}
 
-	// csvFile, err := os.Create("test.csv")
-	// if err != nil {
-	// 	return errors.New("error creating CSV file")
-	// }
-	// defer csvFile.Close()
-	//
-	// if err = app.Iconik.ProcessObjs(col, csv.NewWriter(csvFile)); err != nil {
-	// 	return err
-	// }
-
-	// if cfg.Output != "" && cfg.Excel {
-	// 	// Build CSV and output
-	// 	metadataFile, err := app.Iconik.PrepMetadataForWriting()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	//
-	// 	err = app.Iconik.WriteExcelFile(metadataFile)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	if cfg.Output != "" && cfg.CSV {
-		// Build CSV and output
-		metadataFile, err := app.Iconik.PrepMetadataForWriting()
-		if err != nil {
-			return err
-		}
-
-		err = app.Iconik.WriteCSVFile(metadataFile)
-		if err != nil {
-			return err
-		}
+	if err = app.Iconik.GetCol(cfg.CollectionID, 1, w); err != nil {
+		return err
 	}
 
 	if filepath.Ext(cfg.Input) == ".xlsx" {
@@ -139,7 +109,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 }
 
 func argParse() (*iconikio.Config, error) {
-
 	var cfg iconikio.Config
 
 	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL")
