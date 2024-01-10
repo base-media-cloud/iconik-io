@@ -7,14 +7,14 @@ import (
 )
 
 type IconikRepo interface {
-	GetCol(collectionID string, pageNo int, w *csv.Writer) error
-	GetHeaders() [][]string
-	PrepMetadata(objs []*Object) ([][]string, error)
-	GetMetadata() error
+	ProcessColl(collectionID string, pageNo int, w *csv.Writer) error
+	WriteCollToCSV(c *Collection, w *csv.Writer) error
+	Headers() [][]string
+	FormatObjects(objs []*Object) ([][]string, error)
+	Metadata() error
 	ReadCSVFile() ([][]string, error)
 	WriteCSVFile(metadataFile [][]string) error
 	ReadExcelFile() ([][]string, error)
 	WriteExcelFile(metadataFile [][]string) error
-	ProcessObjs(c *Collection, w *csv.Writer) error
 	UpdateIconik(metadataFile [][]string) error
 }

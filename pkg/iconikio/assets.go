@@ -15,8 +15,9 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// GetCollection gets all the results from a collection and return the full object list with metadata.
-func (i *Iconik) GetCol(collectionID string, pageNo int, w *csv.Writer) error {
+// ProcessColl takes a collection ID and recursively writes every collection
+// to a csv file one collection at a time.
+func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) error {
 	result, err := url.JoinPath(
 		i.IconikClient.Config.APIConfig.Host,
 		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path,
@@ -52,12 +53,12 @@ func (i *Iconik) GetCol(collectionID string, pageNo int, w *csv.Writer) error {
 		return err
 	}
 
-	if err = i.ProcessObjs(c, w); err != nil {
+	if err = i.WriteCollToCSV(c, w); err != nil {
 		return err
 	}
 
 	if c.Pages > pageNo {
-		if err = i.GetCol(collectionID, pageNo+1, w); err != nil {
+		if err = i.ProcessColl(collectionID, pageNo+1, w); err != nil {
 			return err
 		}
 	}
@@ -65,13 +66,15 @@ func (i *Iconik) GetCol(collectionID string, pageNo int, w *csv.Writer) error {
 	return nil
 }
 
-func (i *Iconik) ProcessObjs(c *Collection, w *csv.Writer) error {
+// WriteCollToCSV Writes the objects from the collection to a csv file
+// and will recursively call get collection if another collection is found.
+func (i *Iconik) WriteCollToCSV(c *Collection, w *csv.Writer) error {
 	var output []*Object
 
 	for j := range c.Objects {
 		if c.Objects[j].ObjectType == "collections" {
 			fmt.Printf("\nfound collection %s", c.Objects[j].Title)
-			if err := i.GetCol(c.Objects[j].ID, 1, w); err != nil {
+			if err := i.ProcessColl(c.Objects[j].ID, 1, w); err != nil {
 				return err
 			}
 			continue
@@ -79,7 +82,7 @@ func (i *Iconik) ProcessObjs(c *Collection, w *csv.Writer) error {
 		output = append(output, c.Objects[j])
 	}
 
-	toWrite, err := i.PrepMetadata(output)
+	toWrite, err := i.FormatObjects(output)
 	if err != nil {
 		return err
 	}
@@ -91,8 +94,7 @@ func (i *Iconik) ProcessObjs(c *Collection, w *csv.Writer) error {
 	return nil
 }
 
-// GetMetadata gets the metadata using the given metadata view ID.
-func (i *Iconik) GetMetadata() error {
+func (i *Iconik) Metadata() error {
 	result, err := url.JoinPath(
 		i.IconikClient.Config.APIConfig.Host,
 		i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Get.Path,
@@ -134,7 +136,7 @@ func (i *Iconik) GetMetadata() error {
 	return nil
 }
 
-func (i *Iconik) GetHeaders() [][]string {
+func (i *Iconik) Headers() [][]string {
 	var metadataFile [][]string
 	var csvColumnsLabel []string
 	for _, field := range i.IconikClient.Metadata.ViewFields {
@@ -148,7 +150,7 @@ func (i *Iconik) GetHeaders() [][]string {
 	return append(metadataFile, headerRow)
 }
 
-func (i *Iconik) PrepMetadata(objs []*Object) ([][]string, error) {
+func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 	var metadataFile [][]string
 	var csvColumnsName []string
 
