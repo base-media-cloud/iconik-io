@@ -38,8 +38,8 @@ type Config struct {
 // Collection is the top level data structure that receives the unmarshalled payload
 // response.
 type Collection struct {
-	Objects []*Object `json:"objects"`
-	Errors  []string  `json:"errors"`
+	Objects []*Object   `json:"objects"`
+	Errors  interface{} `json:"errors"`
 	Pages   int
 }
 
@@ -74,7 +74,7 @@ type Metadata struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	ViewFields  []*ViewField `json:"view_fields"`
-	Errors      []string     `json:"errors"`
+	Errors      interface{}  `json:"errors"`
 }
 
 // ViewField acts as a non nested struct to the ViewFields type in Metadata.

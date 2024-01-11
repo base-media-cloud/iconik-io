@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -60,7 +61,11 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	f, err := os.Create("report.csv")
+	today := time.Now().Format("2006-01-02_150405")
+	filename := fmt.Sprintf("%s.csv", today)
+	filePath := iconikClient.Config.Output + filename
+
+	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
