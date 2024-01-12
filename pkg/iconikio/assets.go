@@ -15,6 +15,20 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+type wrappedErrs struct {
+	errs interface{}
+}
+
+func (w *wrappedErrs) Error() string {
+	return fmt.Sprintf("%v", w.errs)
+}
+
+func NewWrappedErrs(errs interface{}) *wrappedErrs {
+	return &wrappedErrs{
+		errs: errs,
+	}
+}
+
 // ProcessColl takes a collection ID and recursively writes every collection
 // to a csv file one collection at a time.
 func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) error {
@@ -53,6 +67,10 @@ func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) err
 		return err
 	}
 
+	if c.Errors != nil {
+		return NewWrappedErrs(c.Errors)
+	}
+
 	if err = i.WriteCollToCSV(c, w); err != nil {
 		return err
 	}
@@ -73,7 +91,7 @@ func (i *Iconik) WriteCollToCSV(c *Collection, w *csv.Writer) error {
 
 	for j := range c.Objects {
 		if c.Objects[j].ObjectType == "collections" {
-			fmt.Printf("\nfound collection %s", c.Objects[j].Title)
+			fmt.Printf("\nfound collection %s, collection id %s", c.Objects[j].Title, c.Objects[j].ID)
 			if err := i.ProcessColl(c.Objects[j].ID, 1, w); err != nil {
 				return err
 			}
@@ -129,8 +147,8 @@ func (i *Iconik) Metadata() error {
 		return err
 	}
 
-	if len(i.IconikClient.Metadata.Errors) != 0 {
-		return fmt.Errorf(strings.Join(i.IconikClient.Metadata.Errors, ", "))
+	if i.IconikClient.Metadata.Errors != nil {
+		return NewWrappedErrs(i.IconikClient.Metadata.Errors)
 	}
 
 	return nil
