@@ -5,14 +5,13 @@ package cmd
 
 import (
 	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
+	"github.com/rs/zerolog"
 	"os"
 	"path/filepath"
 	"time"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
@@ -25,18 +24,13 @@ var (
 )
 
 type Application struct {
-	Logger *zap.SugaredLogger
+	Logger zerolog.Logger
 	Iconik iconikio.IconikRepo
 }
 
-func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
+func Execute(l zerolog.Logger) error {
 	app.Logger = l
-	app.Logger.Infow("starting service", zapcore.Field{
-		Key:    "build",
-		Type:   zapcore.StringType,
-		String: build,
-	})
-	defer app.Logger.Infow("shutdown complete")
+	app.Logger.Info().Str("build", build).Msg("starting service")
 
 	cfg, err := argParse()
 	if err != nil {
@@ -113,18 +107,17 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	return nil
 }
 
-func argParse() (*iconikio.Config, error) {
-	var cfg iconikio.Config
+func argParse() (*config.Iconik, error) {
+	var cfg config.Iconik
 
-	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL")
+	flag.StringVar(&cfg.BaseURL, "iconik-url", "app.iconik.io", "the iconik URL")
 	flag.StringVar(&cfg.AppID, "app-id", "", "iconik Application ID")
 	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
 	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
 	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
+	flag.BoolVar()
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
-	flag.BoolVar(&cfg.Excel, "excel", false, "Select Excel output")
-	flag.BoolVar(&cfg.CSV, "csv", false, "Select CSV output")
 	ver := flag.Bool("version", false, "Print version")
 	flag.Parse()
 
@@ -140,24 +133,19 @@ func argParse() (*iconikio.Config, error) {
 	}
 
 	if cfg.AppID == "" {
-		app.Logger.Fatalw("No App-Id provided")
+		return nil, errors.New("No App-Id provided")
 	}
 	if cfg.AuthToken == "" {
-		app.Logger.Fatalw("No Auth-Token provided")
+		return nil, errors.New("No Auth-Token provided")
 	}
 	if cfg.CollectionID == "" {
-		app.Logger.Fatalw("No Collection ID provided")
+		return nil, errors.New("No Collection ID provided")
 	}
 	if cfg.ViewID == "" {
-		app.Logger.Fatalw("No Metadata View ID provided")
+		return nil, errors.New("No Metadata View ID provided")
 	}
 	if cfg.Input == "" && cfg.Output == "" {
-		app.Logger.Infoln("Neither input or output mode selected")
-		versionInfo()
-		return nil, nil
-	}
-	if cfg.Output != "" && !cfg.Excel && !cfg.CSV {
-		app.Logger.Infoln("Neither excel or csv file format selected")
+		return nil, errors.New("Neither input or output mode selected")
 		versionInfo()
 		return nil, nil
 	}

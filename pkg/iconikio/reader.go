@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"log"
 	"net/url"
 	"os"
@@ -28,23 +27,6 @@ func (i *Iconik) ReadCSVFile() ([][]string, error) {
 	}
 
 	return csvData, nil
-}
-
-func (i *Iconik) ReadExcelFile() ([][]string, error) {
-	excelFile, err := excelize.OpenFile(i.IconikClient.Config.Input)
-	if err != nil {
-		return nil, err
-	}
-	defer excelFile.Close()
-
-	activeSheet := excelFile.GetSheetList()[excelFile.GetActiveSheetIndex()]
-
-	excelData, err := excelFile.GetRows(activeSheet)
-	if err != nil {
-		return nil, err
-	}
-
-	return excelData, nil
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
