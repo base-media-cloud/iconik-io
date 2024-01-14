@@ -27,3 +27,44 @@ type Option struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
 }
+
+func (v *Views) ToDTO() ViewsDTO {
+	var viewFieldsDTO []*ViewFieldDTO
+
+	for _, vf := range v.ViewFields {
+		viewFieldDTO := vf.ToDTO()
+		viewFieldsDTO = append(viewFieldsDTO, &viewFieldDTO)
+	}
+
+	return ViewsDTO{
+		Name:        v.Name,
+		Description: v.Description,
+		ViewFields:  viewFieldsDTO,
+		Errors:      nil,
+	}
+}
+
+func (vf *ViewField) ToDTO() ViewFieldDTO {
+	var optionsDTO []*OptionDTO
+
+	for _, opt := range vf.Options {
+		optionDTO := opt.ToDTO()
+		optionsDTO = append(optionsDTO, &optionDTO)
+	}
+
+	return ViewFieldDTO{
+		Name:      vf.Name,
+		Label:     vf.Label,
+		FieldType: vf.FieldType,
+		Options:   optionsDTO,
+		ReadOnly:  vf.ReadOnly,
+		Required:  vf.Required,
+	}
+}
+
+func (o *Option) ToDTO() OptionDTO {
+	return OptionDTO{
+		Label: o.Label,
+		Value: o.Value,
+	}
+}
