@@ -7,6 +7,7 @@ import (
 )
 
 type IconikRepo interface {
+	CollectionName(collectionID string) (string, error)
 	ProcessColl(collectionID string, pageNo int, w *csv.Writer) error
 	WriteCollToCSV(c *Collection, w *csv.Writer) error
 	Headers() [][]string

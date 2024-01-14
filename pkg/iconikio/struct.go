@@ -36,11 +36,17 @@ type Config struct {
 }
 
 // Collection is the top level data structure that receives the unmarshalled payload
-// response.
+// response from GET collection contents (/API/assets/v1/collections/{collection-id}/contents).
 type Collection struct {
 	Objects []*Object   `json:"objects"`
 	Errors  interface{} `json:"errors"`
 	Pages   int
+}
+
+// Coll is the top level data structure that receives the unmarshalled payload
+// response from GET collection (/API/assets/v1/collections/{collection-id}).
+type Coll struct {
+	Title string
 }
 
 // Object acts as a non nested struct to the Objects type in Collection.

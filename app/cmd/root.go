@@ -61,8 +61,13 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
+	collectionName, err := app.Iconik.CollectionName(cfg.CollectionID)
+	if err != nil {
+		return err
+	}
+
 	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.csv", today)
+	filename := fmt.Sprintf("%s_%s_Report_%s.csv", cfg.CollectionID, collectionName, today)
 	filePath := iconikClient.Config.Output + filename
 
 	f, err := os.Create(filePath)

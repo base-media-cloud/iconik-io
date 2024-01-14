@@ -29,6 +29,41 @@ func NewWrappedErrs(errs interface{}) *wrappedErrs {
 	}
 }
 
+// CollectionName takes a collection ID and returns the collection Name.
+func (i *Iconik) CollectionName(collectionID string) (string, error) {
+	result, err := url.JoinPath(
+		i.IconikClient.Config.APIConfig.Host,
+		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path,
+		collectionID,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	u, err := url.Parse(result)
+	if err != nil {
+		return "", err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+
+	_, resBody, err := i.getResponseBody(
+		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method,
+		u.String(),
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	var c *Coll
+	if err = json.Unmarshal(resBody, &c); err != nil {
+		return "", err
+	}
+
+	return c.Title, nil
+}
+
 // ProcessColl takes a collection ID and recursively writes every collection
 // to a csv file one collection at a time.
 func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) error {
@@ -68,7 +103,8 @@ func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) err
 	}
 
 	if c.Errors != nil {
-		return NewWrappedErrs(c.Errors)
+		fmt.Println(c.Errors, u.String(), collectionID)
+		// return NewWrappedErrs(c.Errors)
 	}
 
 	if err = i.WriteCollToCSV(c, w); err != nil {
@@ -148,7 +184,8 @@ func (i *Iconik) Metadata() error {
 	}
 
 	if i.IconikClient.Metadata.Errors != nil {
-		return NewWrappedErrs(i.IconikClient.Metadata.Errors)
+		fmt.Println(i.IconikClient.Metadata.Errors, u.String())
+		// return NewWrappedErrs(i.IconikClient.Metadata.Errors)
 	}
 
 	return nil
