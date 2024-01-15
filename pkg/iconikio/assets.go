@@ -256,7 +256,11 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 			}
 
 			if len(result) > 1 {
-				row[i+4] = strings.Join(result, ",")
+				if _, err := strconv.Atoi(result[0]); err == nil {
+					row[i+4] = result[0]
+				} else {
+					row[i+4] = strings.Join(result, ",")
+				}
 			} else {
 				row[i+4] = strings.Join(result, "")
 			}
