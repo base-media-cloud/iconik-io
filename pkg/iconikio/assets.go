@@ -248,7 +248,10 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 					result[index] = fmt.Sprintf("%t", val)
 				case int:
 					result[index] = fmt.Sprintf("%d", val)
+				case float64:
+					result[index] = fmt.Sprintf("%d", int(val))
 				default:
+					result[index] = fmt.Sprintf("%d", val)
 				}
 			}
 
