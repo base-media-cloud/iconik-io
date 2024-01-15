@@ -5,3 +5,9 @@ package collections
 type Collection struct {
 	Title string
 }
+
+func (c *Collection) ToDTO() DTO {
+	return DTO{
+		Title: c.Title,
+	}
+}

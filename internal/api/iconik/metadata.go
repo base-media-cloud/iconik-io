@@ -18,7 +18,7 @@ func (a *API) GetMetadataViews(ctx context.Context, path, viewID string) ([]view
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path,
+		a.url+path+viewID,
 		a.headers,
 		nil,
 		nil,

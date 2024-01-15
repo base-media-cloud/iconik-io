@@ -30,3 +30,50 @@ type File struct {
 	StorageId     string `json:"storage_id"`
 	StorageMethod string `json:"storage_method"`
 }
+
+func (c *Contents) ToDTO() ContentsDTO {
+	var objectDTOs []*ObjectDTO
+
+	for _, o := range c.Objects {
+		objectDTO := o.ToDTO()
+		objectDTOs = append(objectDTOs, &objectDTO)
+	}
+
+	return ContentsDTO{
+		Objects: objectDTOs,
+		Errors:  c.Errors,
+		Pages:   c.Pages,
+	}
+}
+
+func (o *Object) ToDTO() ObjectDTO {
+	var fileDTOs []*FileDTO
+
+	for _, f := range o.Files {
+		fileDTO := f.ToDTO()
+		fileDTOs = append(fileDTOs, &fileDTO)
+	}
+
+	return ObjectDTO{
+		ID:         o.ID,
+		Metadata:   o.Metadata,
+		Title:      o.Title,
+		Files:      fileDTOs,
+		ObjectType: o.ObjectType,
+	}
+}
+
+func (f *File) ToDTO() FileDTO {
+	return FileDTO{
+		DirectoryPath: f.DirectoryPath,
+		FileSetId:     f.FileSetId,
+		FormatId:      f.FormatId,
+		Id:            f.Id,
+		Name:          f.Name,
+		OriginalName:  f.OriginalName,
+		Size:          f.Size,
+		Status:        f.Status,
+		StorageId:     f.StorageId,
+		StorageMethod: f.StorageMethod,
+	}
+}

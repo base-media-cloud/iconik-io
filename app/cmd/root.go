@@ -9,7 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
+	iconikapi "github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
+	iconiksvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/iconik"
 	"github.com/rs/zerolog"
 	"net/http"
 	"os"
@@ -42,9 +43,15 @@ func Execute(l zerolog.Logger) error {
 	ctx := app.Logger.WithContext(context.Background())
 
 	req := api.New(&http.Client{})
-	iconikAPI := iconik.New(iconikCfg, req)
+	iconikAPI := iconikapi.New(iconikCfg, req)
+	iconikSvc := iconiksvc.New(iconikAPI, iconikCfg)
 
-	views, err := iconikAPI.GetMetadataViews(ctx, iconik.MetadataViewsPath, iconikCfg.ViewID)
+	views, err := iconikSvc.GetMetadataViews(ctx, iconikapi.MetadataViewsPath, iconikCfg.ViewID)
+	if err != nil {
+		return err
+	}
+
+	coll, err := iconikSvc.GetCollection(ctx, iconikapi.CollectionsPath, iconikCfg.CollectionID)
 	if err != nil {
 		return err
 	}
@@ -63,13 +70,8 @@ func Execute(l zerolog.Logger) error {
 	}
 
 	if iconikCfg.Output != "" {
-		collectionName, err := app.Iconik.CollectionName(iconikCfg.CollectionID)
-		if err != nil {
-			return err
-		}
-
 		today := time.Now().Format("2006-01-02_150405")
-		filename := fmt.Sprintf("%s_%s_Report_%s.csv", iconikCfg.CollectionID, collectionName, today)
+		filename := fmt.Sprintf("%s_%s_Report_%s.csv", iconikCfg.CollectionID, coll.Title, today)
 		filePath := iconikCfg.Output + filename
 
 		f, err := os.Create(filePath)

@@ -15,20 +15,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-type wrappedErrs struct {
-	errs interface{}
-}
-
-func (w *wrappedErrs) Error() string {
-	return fmt.Sprintf("%v", w.errs)
-}
-
-func NewWrappedErrs(errs interface{}) *wrappedErrs {
-	return &wrappedErrs{
-		errs: errs,
-	}
-}
-
 // CollectionName takes a collection ID and returns the collection Name.
 func (i *Iconik) CollectionName(collectionID string) (string, error) {
 	result, err := url.JoinPath(
