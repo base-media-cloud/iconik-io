@@ -15,83 +15,10 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// CollectionName takes a collection ID and returns the collection Name.
-func (i *Iconik) CollectionName(collectionID string) (string, error) {
-	result, err := url.JoinPath(
-		i.IconikClient.Config.APIConfig.Host,
-		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path,
-		collectionID,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return "", err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	_, resBody, err := i.getResponseBody(
-		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method,
-		u.String(),
-		nil,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	var c *Coll
-	if err = json.Unmarshal(resBody, &c); err != nil {
-		return "", err
-	}
-
-	return c.Title, nil
-}
-
 // ProcessColl takes a collection ID and recursively writes every collection
 // to a csv file one collection at a time.
 func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) error {
-	result, err := url.JoinPath(
-		i.IconikClient.Config.APIConfig.Host,
-		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path,
-		collectionID,
-		"/contents/",
-	)
-	if err != nil {
-		return err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-	queryParams := u.Query()
-	queryParams.Set("per_page", "500")
-	queryParams.Set("page", strconv.Itoa(pageNo))
-	u.RawQuery = queryParams.Encode()
-
-	_, resBody, err := i.getResponseBody(
-		i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method,
-		u.String(),
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	var c *Collection
-	if err = json.Unmarshal(resBody, &c); err != nil {
-		return err
-	}
-
-	if c.Errors != nil {
-		fmt.Println(c.Errors, u.String(), collectionID)
-		// return NewWrappedErrs(c.Errors)
-	}
+	objs, err := s.GetCollContents
 
 	if err = i.WriteCollToCSV(c, w); err != nil {
 		return err

@@ -7,6 +7,7 @@ package iconik
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 )
@@ -25,10 +26,11 @@ type Requester interface {
 
 // API is a wrapper struct for all iconik endpoints.
 type API struct {
-	cfg     *config.Iconik
-	req     Requester
-	url     string
-	headers map[string]string
+	cfg         *config.Iconik
+	req         Requester
+	url         string
+	headers     map[string]string
+	queryParams map[string]string
 }
 
 // New is a function that returns a new instance of the API struct.
@@ -38,6 +40,9 @@ func New(cfg *config.Iconik, req Requester) *API {
 		headers: map[string]string{
 			"App-ID":     cfg.AppID,
 			"Auth-Token": cfg.AuthToken,
+		},
+		queryParams: map[string]string{
+			"per_page": strconv.Itoa(cfg.Limit),
 		},
 		url: cfg.BaseURL,
 		req: req,

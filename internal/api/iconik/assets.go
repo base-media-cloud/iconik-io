@@ -3,12 +3,14 @@ package iconik
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections/contents"
 	"github.com/rs/zerolog"
 	"net/http"
+	"strconv"
 )
 
 func (a *API) GetCollection(ctx context.Context, path, collectionID string) (collections.DTO, error) {
@@ -98,17 +100,21 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 	return res.ToDTO(), nil
 }
 
-func (a *API) GetCollContents(ctx context.Context, path, collectionID string) ([]contents.ObjectDTO, error) {
+func (a *API) GetCollContents(ctx context.Context, path, collectionID string, pageNo int) ([]contents.ObjectDTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
 	zerolog.Ctx(ctx).Info().Msg("getting collection contents from iconik")
 
+	a.queryParams["page"] = strconv.Itoa(pageNo)
+
+	endpoint := a.url + path + collectionID + "/contents/"
+
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path+collectionID+"/contents/",
+		endpoint,
 		a.headers,
-		nil,
+		a.queryParams,
 		nil,
 	)
 
@@ -177,6 +183,11 @@ func (a *API) GetCollContents(ctx context.Context, path, collectionID string) ([
 			Err(err).
 			Msg("error unmarshalling body")
 		return nil, domain.ErrInternalError
+	}
+
+	if res.Errors != nil {
+		fmt.Println(res.Errors, endpoint, collectionID)
+		// return NewWrappedErrs(res.Errors)
 	}
 
 	dtos := make([]contents.ObjectDTO, len(res.Objects))

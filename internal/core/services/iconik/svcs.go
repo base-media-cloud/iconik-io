@@ -2,75 +2,46 @@ package iconik
 
 import (
 	"context"
-	"github.com/base-media-cloud/pd-iconik-io-rd/config"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections/contents"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata/views"
+	"encoding/csv"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/metadata"
 	"github.com/rs/zerolog"
 )
 
-// API is an interface that defines the operations that can be performed on the iconik endpoints.
-type API interface {
-	GetMetadataViews(ctx context.Context, path, viewID string) ([]views.ViewFieldDTO, error)
-	GetCollContents(ctx context.Context, path, collectionID string) ([]contents.ObjectDTO, error)
-	GetCollection(ctx context.Context, path, collectionID string) (collections.DTO, error)
-}
-
-// Svc is a struct that implements the metadataports.Servicer interface.
+// Svc is a struct that implements the iconik servicer ports.
 type Svc struct {
-	api API
-	cfg *config.Iconik
+	metaSvc metadata.Servicer
+	collSvc collections.Servicer
+	csvSvc  csvsvc.Servicer
 }
 
-// New is a function that returns a new instance of the Svc struct.
+// New is a function that returns a new instance of iconik Svc struct.
 func New(
-	a API,
-	cfg *config.Iconik,
+	metaSvc metadata.Servicer,
+	collSvc collections.Servicer,
 ) *Svc {
 	return &Svc{
-		api: a,
-		cfg: cfg,
+		metaSvc: metaSvc,
+		collSvc: collSvc,
 	}
 }
 
-func (s *Svc) GetMetadataViews(ctx context.Context, path, viewID string) ([]views.ViewFieldDTO, error) {
-	dtos, err := s.api.GetMetadataViews(ctx, path, viewID)
+// ProcessCollection hits the iconik endpoint, gets system domains and creates lines in the database.
+func (svc *Svc) ProcessCollection(ctx context.Context, path, collectionID string, pageNo int, w *csv.Writer) error {
+	objDTOs, err := svc.collSvc.GetCollContents(ctx, path, collectionID, pageNo)
 	if err != nil {
-		return nil, err
-	}
-
-	if len(dtos) == 0 {
 		zerolog.Ctx(ctx).Info().
-			Str("path", iconik.MetadataViewsPath).
-			Msg("no metadata views returned from iconik api")
-		return nil, nil
+			Err(err).
+			Msg("error getting collection contents")
+		return err
 	}
 
-	return dtos, nil
-}
-
-func (s *Svc) GetCollContents(ctx context.Context, path, collectionID string) ([]contents.ObjectDTO, error) {
-	dtos, err := s.api.GetCollContents(ctx, path, collectionID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(dtos) == 0 {
+	if err = svc.csvSvc.WriteObjsToCSV(objDTOs, w); err != nil {
 		zerolog.Ctx(ctx).Info().
-			Str("path", iconik.CollectionsPath).
-			Msg("no collection contents returned from iconik api")
-		return nil, nil
+			Err(err).
+			Msg("error writing objects to csv")
+		return err
 	}
 
-	return dtos, nil
-}
-
-func (s *Svc) GetCollection(ctx context.Context, path, collectionID string) (collections.DTO, error) {
-	dto, err := s.api.GetCollection(ctx, path, collectionID)
-	if err != nil {
-		return collections.DTO{}, err
-	}
-
-	return dto, nil
+	return nil
 }
