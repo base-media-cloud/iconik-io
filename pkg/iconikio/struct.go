@@ -36,11 +36,17 @@ type Config struct {
 }
 
 // Collection is the top level data structure that receives the unmarshalled payload
-// response.
+// response from GET collection contents (/API/assets/v1/collections/{collection-id}/contents).
 type Collection struct {
-	Objects []*Object `json:"objects"`
-	Errors  []string  `json:"errors"`
+	Objects []*Object   `json:"objects"`
+	Errors  interface{} `json:"errors"`
 	Pages   int
+}
+
+// Coll is the top level data structure that receives the unmarshalled payload
+// response from GET collection (/API/assets/v1/collections/{collection-id}).
+type Coll struct {
+	Title string
 }
 
 // Object acts as a non nested struct to the Objects type in Collection.
@@ -74,7 +80,7 @@ type Metadata struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	ViewFields  []*ViewField `json:"view_fields"`
-	Errors      []string     `json:"errors"`
+	Errors      interface{}  `json:"errors"`
 }
 
 // ViewField acts as a non nested struct to the ViewFields type in Metadata.

@@ -4,10 +4,12 @@ Package cmd executes the commands required to run the application.
 package cmd
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -54,53 +56,36 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	app.Iconik = &iconikio.Iconik{IconikClient: iconikClient}
 
 	// Get Metadata using given Metadata ID
-	err = app.Iconik.GetMetadata()
+	err = app.Iconik.Metadata()
 	if err != nil {
 		return err
 	}
 
-	// Get Collection using given Collection ID
-	err = app.Iconik.GetCollection(cfg.CollectionID, 1)
+	collectionName, err := app.Iconik.CollectionName(cfg.CollectionID)
 	if err != nil {
 		return err
 	}
 
-	assetsMap := make(map[string]struct{})
-	collectionsMap := make(map[string]struct{})
-	err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap, collectionsMap)
+	today := time.Now().Format("2006-01-02_150405")
+	filename := fmt.Sprintf("%s_%s_Report_%s.csv", cfg.CollectionID, collectionName, today)
+	filePath := iconikClient.Config.Output + filename
+
+	f, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
-	if cfg.Output != "" && cfg.Excel {
-		// Build CSV and output
-		metadataFile, err := app.Iconik.PrepMetadataForWriting()
-		if err != nil {
-			return err
-		}
-
-		err = app.Iconik.WriteExcelFile(metadataFile)
-		if err != nil {
-			return err
-		}
+	w := csv.NewWriter(f)
+	if err = w.WriteAll(app.Iconik.Headers()); err != nil {
+		return err
 	}
-
-	if cfg.Output != "" && cfg.CSV {
-		// Build CSV and output
-		metadataFile, err := app.Iconik.PrepMetadataForWriting()
-		if err != nil {
-			return err
-		}
-
-		err = app.Iconik.WriteCSVFile(metadataFile)
-		if err != nil {
-			return err
-		}
+	if err = app.Iconik.ProcessColl(cfg.CollectionID, 1, w); err != nil {
+		return err
 	}
 
 	if filepath.Ext(cfg.Input) == ".xlsx" {
-		fmt.Println()
-		fmt.Println("Inputting data from provided Excel file:")
+		fmt.Println("\nInputting data from provided Excel file:")
 
 		excelData, err := app.Iconik.ReadExcelFile()
 		if err != nil {
@@ -113,8 +98,7 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	if filepath.Ext(cfg.Input) == ".csv" {
-		fmt.Println()
-		fmt.Println("Inputting data from provided CSV file:")
+		fmt.Println("\nInputting data from provided CSV file:")
 
 		csvData, err := app.Iconik.ReadCSVFile()
 		if err != nil {
@@ -130,7 +114,6 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 }
 
 func argParse() (*iconikio.Config, error) {
-
 	var cfg iconikio.Config
 
 	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL")
