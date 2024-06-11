@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -21,7 +22,7 @@ import (
 var (
 	app     Application
 	build   string
-	version = "0.05"
+	version = "0.05b"
 )
 
 type Application struct {
@@ -61,43 +62,49 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	collectionName, err := app.Iconik.CollectionName(cfg.CollectionID)
-	if err != nil {
-		return err
+	if cfg.Output != "" && cfg.Excel {
+		return errors.New("excel not supported currently")
 	}
 
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s_%s_Report_%s.csv", cfg.CollectionID, collectionName, today)
-	filePath := iconikClient.Config.Output + filename
-
-	f, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	w := csv.NewWriter(f)
-	if err = w.WriteAll(app.Iconik.Headers()); err != nil {
-		return err
-	}
-	if err = app.Iconik.ProcessColl(cfg.CollectionID, 1, w); err != nil {
-		return err
-	}
-
-	if filepath.Ext(cfg.Input) == ".xlsx" {
-		fmt.Println("\nInputting data from provided Excel file:")
-
-		excelData, err := app.Iconik.ReadExcelFile()
+	if cfg.Output != "" && cfg.CSV {
+		collectionName, err := app.Iconik.CollectionName(cfg.CollectionID)
 		if err != nil {
 			return err
 		}
-		err = app.Iconik.UpdateIconik(excelData)
+
+		today := time.Now().Format("2006-01-02_150405")
+		filename := fmt.Sprintf("%s_%s_Report_%s.csv", cfg.CollectionID, collectionName, today)
+		filePath := iconikClient.Config.Output + filename
+
+		f, err := os.Create(filePath)
 		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		w := csv.NewWriter(f)
+		if err = w.WriteAll(app.Iconik.Headers()); err != nil {
+			return err
+		}
+		if err = app.Iconik.ProcessColl(cfg.CollectionID, 1, w); err != nil {
 			return err
 		}
 	}
 
 	if filepath.Ext(cfg.Input) == ".csv" {
+		// Get Collection using given Collection ID
+		err = app.Iconik.GetCollection(cfg.CollectionID, 1)
+		if err != nil {
+			return err
+		}
+
+		assetsMap := make(map[string]struct{})
+		collectionsMap := make(map[string]struct{})
+		err = app.Iconik.ProcessObjects(iconikClient.Collection, assetsMap, collectionsMap)
+		if err != nil {
+			return err
+		}
+
 		fmt.Println("\nInputting data from provided CSV file:")
 
 		csvData, err := app.Iconik.ReadCSVFile()

@@ -15,7 +15,7 @@ type IconikRepo interface {
 	Metadata() error
 	ReadCSVFile() ([][]string, error)
 	WriteCSVFile(metadataFile [][]string) error
-	ReadExcelFile() ([][]string, error)
-	WriteExcelFile(metadataFile [][]string) error
 	UpdateIconik(metadataFile [][]string) error
+	GetCollection(collectionID string, pageNo int) error
+	ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error
 }

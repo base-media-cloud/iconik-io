@@ -2,7 +2,7 @@
 
 # set variables
 PACKAGE=$1
-VERSION='0.03'
+VERSION='0.05b'
 BUILD=$(git rev-parse --short HEAD)
 DIR="build"
 
@@ -41,7 +41,7 @@ do
 
       # TAR the files
       echo "Tarring the file: $package_name"
-      tar -czvf ./$DIR/"${output_name}.tar.gz" ./$DIR/$package_name
+      tar -czvf ./$DIR/"${output_name}.tar.gz" -C $DIR $package_name
       wait
 
       # remove the non packaged binary file

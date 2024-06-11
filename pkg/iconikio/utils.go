@@ -13,15 +13,17 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 	var matchingIconikHeaderLabels []string
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "id")
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "original_name")
+	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "size")
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "title")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "id")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "original_name")
+	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "size")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "title")
 
 	var nonMatchingHeaders []string
 
 	for index, csvHeaderLabel := range csvHeaderLabels {
-		if index > 2 {
+		if index > 3 {
 			found := false
 			for _, field := range i.IconikClient.Metadata.ViewFields {
 				if csvHeaderLabel == field.Label {
@@ -41,12 +43,12 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 	matchingValues = append(matchingValues, matchingIconikHeaderNames)
 	matchingValues = append(matchingValues, matchingIconikHeaderLabels)
 
-	for i := 1; i < len(csvData); i++ {
-		row := csvData[i]
+	for j := 1; j < len(csvData); j++ {
+		row := csvData[j]
 		var matchingRow []string
-		for i, csvHeaderLabel := range csvHeaderLabels {
+		for k, csvHeaderLabel := range csvHeaderLabels {
 			if contains(matchingIconikHeaderLabels, csvHeaderLabel) {
-				matchingRow = append(matchingRow, row[i])
+				matchingRow = append(matchingRow, row[k])
 			}
 		}
 		matchingValues = append(matchingValues, matchingRow)

@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -28,23 +28,6 @@ func (i *Iconik) ReadCSVFile() ([][]string, error) {
 	}
 
 	return csvData, nil
-}
-
-func (i *Iconik) ReadExcelFile() ([][]string, error) {
-	excelFile, err := excelize.OpenFile(i.IconikClient.Config.Input)
-	if err != nil {
-		return nil, err
-	}
-	defer excelFile.Close()
-
-	activeSheet := excelFile.GetSheetList()[excelFile.GetActiveSheetIndex()]
-
-	excelData, err := excelFile.GetRows(activeSheet)
-	if err != nil {
-		return nil, err
-	}
-
-	return excelData, nil
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
@@ -75,7 +58,7 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	i.IconikClient.Config.CSVFilesToUpdate = len(matchingData) - 2
 	fmt.Println("Amount of files to update:", i.IconikClient.Config.CSVFilesToUpdate)
 
-	for index := 3; index < len(matchingData); index++ {
+	for index := 2; index < len(matchingData); index++ {
 		row := matchingData[index]
 
 		csvMetadata := CSVMetadata{
@@ -101,8 +84,8 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 
 		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
 
-		err := i.validateAssetID(index - 3)
-		err2 := i.validateFilename(index - 3)
+		err := i.validateAssetID(index - 2)
+		err2 := i.validateFilename(index - 2)
 		if err != nil && err2 != nil {
 			log.Printf("%s & %s, skipping\n", err, err2)
 			continue
@@ -135,12 +118,12 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 			}
 		}
 
-		err = i.updateTitle(index - 3)
+		err = i.updateTitle(index - 2)
 		if err != nil {
 			return err
 		}
 
-		err = i.updateMetadata(index - 3)
+		err = i.updateMetadata(index - 2)
 		if err != nil {
 			return err
 		}
@@ -231,5 +214,125 @@ func (i *Iconik) updateMetadata(index int) error {
 		return err
 	}
 
+	return nil
+}
+
+// GetCollection gets all the results from a collection and return the full object list with metadata.
+func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
+	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(result)
+	if err != nil {
+		return err
+	}
+
+	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+	queryParams := u.Query()
+	queryParams.Set("per_page", "500")
+	queryParams.Set("page", strconv.Itoa(pageNo))
+	u.RawQuery = queryParams.Encode()
+
+	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	default:
+		err = json.Unmarshal(resBody, &i.IconikClient.Collection)
+		if err != nil {
+			return err
+		}
+	case i.IconikClient.Collection != nil:
+		var c *Collection
+		err = json.Unmarshal(resBody, &c)
+		if err != nil {
+			return err
+		}
+		i.IconikClient.Collection.Objects = append(i.IconikClient.Collection.Objects, c.Objects...)
+	}
+
+	if i.IconikClient.Collection.Errors != nil {
+		return errors.New(fmt.Sprintf("%v", i.IconikClient.Collection.Errors))
+	}
+
+	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
+		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// // GetCollection gets all the results from a collection and return the full object list with metadata.
+// func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
+// 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	u, err := url.Parse(result)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
+// 	queryParams := u.Query()
+// 	queryParams.Set("per_page", "500")
+// 	queryParams.Set("page", strconv.Itoa(pageNo))
+// 	u.RawQuery = queryParams.Encode()
+//
+// 	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	var c Collection
+//
+// 	err = json.Unmarshal(resBody, &c)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	if c.Errors != nil {
+// 		return errors.New(fmt.Sprintf("%v", c.Errors))
+// 	}
+//
+// 	if c.Pages > 1 && c.Pages > pageNo {
+// 		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
+// 			return err
+// 		}
+// 	}
+//
+// 	return nil
+// }
+
+func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
+	for _, o := range c.Objects {
+		if o.ObjectType == "assets" {
+			if _, exists := assetsMap[o.ID]; !exists {
+				i.IconikClient.Assets = append(i.IconikClient.Assets, o)
+				assetsMap[o.ID] = struct{}{}
+			}
+		} else if o.ObjectType == "collections" {
+			if _, exists := collectionsMap[o.ID]; !exists {
+				fmt.Println()
+				fmt.Printf("found collection %s, traversing:\n", o.Title)
+				err := i.GetCollection(o.ID, 1)
+				if err != nil {
+					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
+					continue
+				}
+				collectionsMap[o.ID] = struct{}{}
+				if err := i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }

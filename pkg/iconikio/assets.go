@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/xuri/excelize/v2"
 )
 
 type wrappedErrs struct {
@@ -120,8 +118,8 @@ func (i *Iconik) ProcessColl(collectionID string, pageNo int, w *csv.Writer) err
 	return nil
 }
 
-// WriteCollToCSV Writes the objects from the collection to a csv file
-// and will recursively call get collection if another collection is found.
+// WriteCollToCSV writes the objects from the collection to a csv file
+// and will recursively call ProcessColl if another collection is found.
 func (i *Iconik) WriteCollToCSV(c *Collection, w *csv.Writer) error {
 	var output []*Object
 
@@ -256,11 +254,13 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 			}
 
 			if len(result) > 1 {
-				if _, err := strconv.Atoi(result[0]); err == nil {
-					row[i+4] = result[0]
-				} else {
-					row[i+4] = strings.Join(result, ",")
-				}
+				row[i+4] = strings.Join(result, ",")
+				// if _, err := strconv.Atoi(result[0]); err == nil {
+				// 	fmt.Println(err)
+				// 	row[i+4] = result[0]
+				// } else {
+				// 	row[i+4] = strings.Join(result, ",")
+				// }
 			} else {
 				row[i+4] = strings.Join(result, "")
 			}
@@ -294,36 +294,5 @@ func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
 	}
 
 	log.Println("CSV file successfully saved to", filePath)
-	return nil
-}
-
-func (i *Iconik) WriteExcelFile(metadataFile [][]string) error {
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.xlsx", today)
-	filePath := i.IconikClient.Config.Output + filename
-	sheetName := today
-
-	// Create the excel file
-	excelFile := excelize.NewFile()
-	defer excelFile.Close()
-	if err := excelFile.SetSheetName("Sheet1", sheetName); err != nil {
-		return err
-	}
-
-	for i, row := range metadataFile {
-		startCell, err := excelize.JoinCellName("A", i+1)
-		if err != nil {
-			return err
-		}
-		if err := excelFile.SetSheetRow(sheetName, startCell, &row); err != nil {
-			return err
-		}
-	}
-
-	if err := excelFile.SaveAs(filePath); err != nil {
-		return err
-	}
-
-	log.Println("Excel file successfully saved to", filePath)
 	return nil
 }
