@@ -42,6 +42,7 @@ func (m *Metadata) ToDTO() DTO {
 	}
 }
 
+// ToViewFieldDTO is a method that converts a ViewField to a ViewFieldDTO.
 func (v *ViewField) ToViewFieldDTO() ViewFieldDTO {
 	optionDTOs := make([]OptionDTO, len(v.Options))
 	for i, option := range v.Options {
@@ -58,6 +59,7 @@ func (v *ViewField) ToViewFieldDTO() ViewFieldDTO {
 	}
 }
 
+// ToOptionDTO is a method that converts a Option to a ViewFieldDTO.
 func (o *Option) ToOptionDTO() OptionDTO {
 	return OptionDTO{
 		Label: o.Label,

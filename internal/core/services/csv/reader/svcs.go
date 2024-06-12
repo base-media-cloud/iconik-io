@@ -1,15 +1,15 @@
 package reader
 
 import (
-	"bytes"
-	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/asset"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/validate"
 	"log"
 	"net/url"
@@ -17,42 +17,32 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog"
-
-	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
 	"github.com/base-media-cloud/pd-iconik-io-rd/utils"
 )
 
-// API is an interface that defines the operations that can be performed on the system domains endpoint.
-type API interface {
-	PatchAsset(ctx context.Context, path, assetID string, payload []byte) (*asset.DTO, error)
-}
-
+// Svc is a struct that implements the iconik servicer ports.
 type Svc struct {
-	l         zerolog.Logger
-	iconikCfg *config.Iconik
-	api       API
-	val       validate.Validator
+	collSvc  collections.Servicer
+	assetSvc assets.Servicer
+	val      validate.Validator
 }
 
-// New is a function that returns a new instance of the Svc struct.
+// New is a function that returns a new instance of iconik Svc struct.
 func New(
-	l zerolog.Logger,
-	iconikCfg *config.Iconik,
-	api API,
+	collSvc collections.Servicer,
+	assetSvc assets.Servicer,
 	val validate.Validator,
 ) *Svc {
 	return &Svc{
-		l:         l,
-		iconikCfg: iconikCfg,
-		api:       api,
-		val:       val,
+		collSvc:  collSvc,
+		assetSvc: assetSvc,
+		val:      val,
 	}
 }
 
-func (svc *Svc) ReadCSVFile() ([][]string, error) {
-	csvFile, err := os.Open(svc.iconikCfg.Input)
+func (svc *Svc) ReadCSVFile(iconikCfg *config.Iconik) ([][]string, error) {
+	csvFile, err := os.Open(iconikCfg.Input)
 	if err != nil {
 		return nil, errors.New("error opening CSV file")
 	}
@@ -69,7 +59,7 @@ func (svc *Svc) ReadCSVFile() ([][]string, error) {
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
-func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]string) error {
+func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]string, iconikCfg *config.Iconik) error {
 	csvHeaders := metadataFile[0]
 
 	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
@@ -164,7 +154,7 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 			return errors.New("error marshaling JSON")
 		}
 
-		_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, assetPayload)
+		_, err = svc.assetSvc.UpdateAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, assetPayload)
 		if err != nil {
 			log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
 			return err
@@ -175,14 +165,9 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 			return errors.New("error marshaling JSON")
 		}
 
-		_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, assetPayload)
+		_, err = svc.api.UpdateMetadataInAsset(ctx, iconik.AssetsPath, iconikCfg.ViewID, csvMetadata.IDStruct.ID, metadataPayload)
 		if err != nil {
-			log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
-			return err
-		}
-
-		err = i.updateMetadata(index - 2)
-		if err != nil {
+			log.Println("Error updating metadata for asset ", csvMetadata.IDStruct.ID)
 			return err
 		}
 	}
@@ -207,56 +192,6 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 		}
 	}
 	fmt.Printf("%d of %d\n", countFailed, c.CSVFilesToUpdate)
-
-	return nil
-}
-
-func (svc *Svc) UpdateTitle(csvMetadata csvdomain.CSVMetadata) error {
-	payload, err := json.Marshal(csvMetadata.TitleStruct)
-	if err != nil {
-		return errors.New("error marshaling JSON")
-	}
-
-	_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, payload)
-	if err != nil {
-		log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
-		return err
-	}
-
-	return nil
-}
-
-func (svc *Svc) UpdateMetadata(index int) error {
-	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].MetadataValuesStruct)
-	if err != nil {
-		return errors.New("error marshaling JSON")
-	}
-
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Path2)
-	if err != nil {
-		return err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.MetadataView.Put.Method, u.String(), bytes.NewBuffer(requestBody))
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode == 200 {
-		log.Printf("Successfully updated metadata for asset %s (%s)", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID, i.IconikClient.Config.CSVMetadata[index].OriginalNameStruct.OriginalName)
-	} else {
-		log.Println("Error updating metadata for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
-		log.Println("resBody:", string(resBody))
-		log.Println(fmt.Sprint(res.StatusCode))
-		return err
-	}
 
 	return nil
 }

@@ -6,36 +6,36 @@ import (
 	"errors"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	"github.com/rs/zerolog"
 	"net/http"
 )
 
-// UpdateMetadataInAsset makes a request to the PUT iconik metadata endpoint.
-func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID string, payload []byte) (metadata.DTO, error) {
+// GetCollectionContents makes a request to the GET iconik collection contents endpoint.
+func (a *API) GetCollectionContents(ctx context.Context, path, collectionID string) (collections.ContentsDTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("updating metadata for asset " + assetID + " using " + viewID + " in iconik")
+	zerolog.Ctx(ctxTimeout).Info().Msg("getting collection " + collectionID + " contents from iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
-		http.MethodPut,
-		a.url+path+"/"+assetID+"/views/"+viewID+"/",
+		http.MethodGet,
+		a.url+path+"/"+collectionID+"/contents/",
 		a.headers,
 		nil,
-		payload,
+		nil,
 	)
 
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
 	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return metadata.DTO{}, err
+		return collections.ContentsDTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
 			Msg("status code is nil")
-		return metadata.DTO{}, err
+		return collections.ContentsDTO{}, err
 	case *statusCode == http.StatusTooManyRequests,
 		*statusCode == http.StatusInternalServerError,
 		*statusCode == http.StatusServiceUnavailable,
@@ -43,11 +43,11 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 		f := func() error {
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
-				http.MethodPut,
-				a.url+path+"/"+assetID+"/views/"+viewID+"/",
+				http.MethodGet,
+				a.url+path+"/"+collectionID+"/contents/",
 				a.headers,
 				nil,
-				payload,
+				nil,
 			)
 			return err
 		}
@@ -56,7 +56,7 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 				Debug().
 				Err(err).
 				Uint("attempt", n+1).
-				Msg("retrying to update metadata in iconik")
+				Msg("retrying to get collection contents from iconik")
 		}
 		if *statusCode != http.StatusTooManyRequests {
 			opDelay = 0
@@ -72,23 +72,23 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 			Err(err).
 			Int("status code", *statusCode).
 			Msg("status code unexpected")
-		return metadata.DTO{}, err
+		return collections.ContentsDTO{}, err
 	}
 
 	if err != nil {
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
-			Msg("error updating metadata")
-		return metadata.DTO{}, err
+			Msg("error getting collection contents")
+		return collections.ContentsDTO{}, err
 	}
 
-	var res metadata.Metadata
+	var res collections.Contents
 	if err = json.Unmarshal(body, &res); err != nil {
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
 			Msg("error unmarshalling body")
-		return metadata.DTO{}, err
+		return collections.ContentsDTO{}, err
 	}
 
-	return res.ToDTO(), nil
+	return res.ToContentsDTO(), nil
 }

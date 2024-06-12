@@ -1,22 +1,22 @@
 package metadata
 
 type DTO struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	ViewFields  []ViewFieldDTO `json:"view_fields"`
-	Errors      interface{}    `json:"errors"`
+	Name        string
+	Description string
+	ViewFields  []ViewFieldDTO
+	Errors      interface{}
 }
 
 type ViewFieldDTO struct {
-	Name      string      `json:"name"`
-	Label     string      `json:"label"`
-	FieldType string      `json:"field_type"`
-	Options   []OptionDTO `json:"options"`
-	ReadOnly  bool        `json:"read_only"`
-	Required  bool        `json:"required"`
+	Name      string
+	Label     string
+	FieldType string
+	Options   []OptionDTO
+	ReadOnly  bool
+	Required  bool
 }
 
 type OptionDTO struct {
-	Label string `json:"label"`
-	Value string `json:"value"`
+	Label string
+	Value string
 }

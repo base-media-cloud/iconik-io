@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
 	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/asset"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collection"
 	"strconv"
 	"strings"
 
@@ -29,7 +27,7 @@ var validationRules = map[string][]string{
 
 // API is an interface that defines the operations that can be performed on the system domains endpoint.
 type API interface {
-	GetAsset(ctx context.Context, path, assetID string) (*asset.DTO, error)
+	GetAsset(ctx context.Context, path, assetID string) (*assets.DTO, error)
 }
 
 // Svc is a struct that implements the systemdomainports.Servicer interface.
@@ -67,7 +65,7 @@ func (svc *Svc) Schema(header, val string) error {
 	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
 }
 
-func (svc *Svc) Filename(objects []collection.Object, csvMetadata csvdomain.CSVMetadata) error {
+func (svc *Svc) Filename(objects []collections.Object, csvMetadata csvdomain.CSVMetadata) error {
 	for _, object := range objects {
 		for _, file := range object.Files {
 			if file.OriginalName == csvMetadata.OriginalNameStruct.OriginalName {
@@ -80,7 +78,7 @@ func (svc *Svc) Filename(objects []collection.Object, csvMetadata csvdomain.CSVM
 	return fmt.Errorf("file %s does not exist in given collection id", csvMetadata.OriginalNameStruct.OriginalName)
 }
 
-func (svc *Svc) AssetID(objects []collection.Object, csvMetadata csvdomain.CSVMetadata, ctx context.Context) error {
+func (svc *Svc) AssetID(objects []collections.Object, csvMetadata csvdomain.CSVMetadata, ctx context.Context) error {
 	_, err := uuid.Parse(csvMetadata.IDStruct.ID)
 	if err != nil {
 		return errors.New("not a valid asset ID")
