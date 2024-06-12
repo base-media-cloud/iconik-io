@@ -1,11 +1,12 @@
-package iconikio
+package utils
 
 import (
-	"io"
-	"net/http"
+	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/app/cmd"
+	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
 )
 
-func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error) {
+func MatchCSVtoAPI(viewFields []*iconikio.ViewField, csvData [][]string) ([][]string, []string, error) {
 
 	csvHeaderLabels := csvData[0]
 
@@ -25,10 +26,10 @@ func (i *Iconik) matchCSVtoAPI(csvData [][]string) ([][]string, []string, error)
 	for index, csvHeaderLabel := range csvHeaderLabels {
 		if index > 3 {
 			found := false
-			for _, field := range i.IconikClient.Metadata.ViewFields {
-				if csvHeaderLabel == field.Label {
-					matchingIconikHeaderNames = append(matchingIconikHeaderNames, field.Name)
-					matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, field.Label)
+			for _, viewField := range viewFields {
+				if csvHeaderLabel == viewField.Label {
+					matchingIconikHeaderNames = append(matchingIconikHeaderNames, viewField.Name)
+					matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, viewField.Label)
 					found = true
 					break
 				}
@@ -67,7 +68,7 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-func isBlankStringArray(arr []string) bool {
+func IsBlankStringArray(arr []string) bool {
 	for _, s := range arr {
 		if s != "" {
 			return false
@@ -76,28 +77,12 @@ func isBlankStringArray(arr []string) bool {
 	return true
 }
 
-func (i *Iconik) getResponseBody(method, uri string, params io.Reader) (*http.Response, []byte, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest(method, uri, params)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	req.Header.Add("App-ID", i.IconikClient.Config.AppID)
-	req.Header.Add("Auth-Token", i.IconikClient.Config.AuthToken)
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
-
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer res.Body.Close()
-
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return res, resBody, nil
+func VersionInfo() {
+	fmt.Printf(`
+base iconik-io
+iconik CSV read/write tool
+Version: %s | Build: %s
+Copyright © 2023 Base Media Cloud Limited
+https://base-mc.com
+`, cmd.Version, cmd.Build)
 }

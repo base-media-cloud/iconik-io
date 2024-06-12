@@ -3,14 +3,10 @@ package iconikio
 import (
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type wrappedErrs struct {
@@ -255,12 +251,6 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 
 			if len(result) > 1 {
 				row[i+4] = strings.Join(result, ",")
-				// if _, err := strconv.Atoi(result[0]); err == nil {
-				// 	fmt.Println(err)
-				// 	row[i+4] = result[0]
-				// } else {
-				// 	row[i+4] = strings.Join(result, ",")
-				// }
 			} else {
 				row[i+4] = strings.Join(result, "")
 			}
@@ -271,28 +261,4 @@ func (i *Iconik) FormatObjects(objs []*Object) ([][]string, error) {
 	}
 
 	return metadataFile, nil
-}
-
-func (i *Iconik) WriteCSVFile(metadataFile [][]string) error {
-	today := time.Now().Format("2006-01-02_150405")
-	filename := fmt.Sprintf("%s.csv", today)
-	filePath := i.IconikClient.Config.Output + filename
-
-	// Create the CSV file
-	csvFile, err := os.Create(filePath)
-	if err != nil {
-		return errors.New("error creating CSV file")
-	}
-	defer csvFile.Close()
-
-	csvWriter := csv.NewWriter(csvFile)
-	defer csvWriter.Flush()
-
-	err = csvWriter.WriteAll(metadataFile)
-	if err != nil {
-		return err
-	}
-
-	log.Println("CSV file successfully saved to", filePath)
-	return nil
 }

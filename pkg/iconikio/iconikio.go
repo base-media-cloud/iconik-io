@@ -14,7 +14,6 @@ type IconikRepo interface {
 	FormatObjects(objs []*Object) ([][]string, error)
 	Metadata() error
 	ReadCSVFile() ([][]string, error)
-	WriteCSVFile(metadataFile [][]string) error
 	UpdateIconik(metadataFile [][]string) error
 	GetCollection(collectionID string, pageNo int) error
 	ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error

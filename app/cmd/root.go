@@ -5,24 +5,22 @@ package cmd
 
 import (
 	"encoding/csv"
-	"errors"
-	"flag"
 	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api"
+	"github.com/rs/zerolog"
+	"net/http"
 	"os"
-	"path/filepath"
 	"time"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
+	"go.uber.org/zap"
 )
 
 var (
 	app     Application
-	build   string
-	version = "0.05b"
+	Build   string
+	Version = "0.05b"
 )
 
 type Application struct {
@@ -30,22 +28,14 @@ type Application struct {
 	Iconik iconikio.IconikRepo
 }
 
-func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
-	app.Logger = l
-	app.Logger.Infow("starting service", zapcore.Field{
-		Key:    "build",
-		Type:   zapcore.StringType,
-		String: build,
-	})
-	defer app.Logger.Infow("shutdown complete")
+func Execute(appCfg config.Config, l zerolog.Logger) error {
 
-	cfg, err := argParse()
+	iconikCfg, err := config.NewIconik()
 	if err != nil {
-		return err
+		l.Fatal().Err(err).Msg("error creating iconik config")
 	}
-	if cfg == nil {
-		return nil
-	}
+
+	req := api.New(&http.Client{})
 
 	// Create new Iconik Client struct
 	iconikClient := iconikio.New(cfg)
@@ -62,18 +52,14 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		return err
 	}
 
-	if cfg.Output != "" && cfg.Excel {
-		return errors.New("excel not supported currently")
-	}
-
-	if cfg.Output != "" && cfg.CSV {
-		collectionName, err := app.Iconik.CollectionName(cfg.CollectionID)
+	if iconikCfg.Output != "" {
+		collectionName, err := app.Iconik.CollectionName(iconikCfg.CollectionID)
 		if err != nil {
 			return err
 		}
 
 		today := time.Now().Format("2006-01-02_150405")
-		filename := fmt.Sprintf("%s_%s_Report_%s.csv", cfg.CollectionID, collectionName, today)
+		filename := fmt.Sprintf("%s_%s_Report_%s.csv", iconikCfg.CollectionID, collectionName, today)
 		filePath := iconikClient.Config.Output + filename
 
 		f, err := os.Create(filePath)
@@ -86,14 +72,13 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 		if err = w.WriteAll(app.Iconik.Headers()); err != nil {
 			return err
 		}
-		if err = app.Iconik.ProcessColl(cfg.CollectionID, 1, w); err != nil {
+		if err = app.Iconik.ProcessColl(iconikCfg.CollectionID, 1, w); err != nil {
 			return err
 		}
 	}
 
-	if filepath.Ext(cfg.Input) == ".csv" {
-		// Get Collection using given Collection ID
-		err = app.Iconik.GetCollection(cfg.CollectionID, 1)
+	if iconikCfg.Input != "" {
+		err = app.Iconik.GetCollection(iconikCfg.CollectionID, 1)
 		if err != nil {
 			return err
 		}
@@ -118,66 +103,4 @@ func Execute(l *zap.SugaredLogger, appCfg config.Config) error {
 	}
 
 	return nil
-}
-
-func argParse() (*iconikio.Config, error) {
-	var cfg iconikio.Config
-
-	flag.StringVar(&cfg.IconikURL, "iconik-url", "app.iconik.io", "the iconik URL")
-	flag.StringVar(&cfg.AppID, "app-id", "", "iconik Application ID")
-	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
-	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
-	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
-	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
-	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
-	flag.BoolVar(&cfg.Excel, "excel", false, "Select Excel output")
-	flag.BoolVar(&cfg.CSV, "csv", false, "Select CSV output")
-	ver := flag.Bool("version", false, "Print version")
-	flag.Parse()
-
-	if flag.NFlag() == 0 {
-		fmt.Println("Usage:")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	if *ver {
-		versionInfo()
-		return nil, nil
-	}
-
-	if cfg.AppID == "" {
-		app.Logger.Fatalw("No App-Id provided")
-	}
-	if cfg.AuthToken == "" {
-		app.Logger.Fatalw("No Auth-Token provided")
-	}
-	if cfg.CollectionID == "" {
-		app.Logger.Fatalw("No Collection ID provided")
-	}
-	if cfg.ViewID == "" {
-		app.Logger.Fatalw("No Metadata View ID provided")
-	}
-	if cfg.Input == "" && cfg.Output == "" {
-		app.Logger.Infoln("Neither input or output mode selected")
-		versionInfo()
-		return nil, nil
-	}
-	if cfg.Output != "" && !cfg.Excel && !cfg.CSV {
-		app.Logger.Infoln("Neither excel or csv file format selected")
-		versionInfo()
-		return nil, nil
-	}
-
-	return &cfg, nil
-}
-
-func versionInfo() {
-	fmt.Printf(`
-base iconik-io
-iconik CSV read/write tool
-Version: %s | Build: %s
-Copyright © 2023 Base Media Cloud Limited
-https://base-mc.com
-`, version, build)
 }

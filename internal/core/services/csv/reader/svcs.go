@@ -1,20 +1,58 @@
-package iconikio
+package reader
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/asset"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/validate"
 	"log"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog"
+
+	"github.com/base-media-cloud/pd-iconik-io-rd/config"
+	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
+	"github.com/base-media-cloud/pd-iconik-io-rd/utils"
 )
 
-func (i *Iconik) ReadCSVFile() ([][]string, error) {
-	csvFile, err := os.Open(i.IconikClient.Config.Input)
+// API is an interface that defines the operations that can be performed on the system domains endpoint.
+type API interface {
+	PatchAsset(ctx context.Context, path, assetID string, payload []byte) (*asset.DTO, error)
+}
+
+type Svc struct {
+	l         zerolog.Logger
+	iconikCfg *config.Iconik
+	api       API
+	val       validate.Validator
+}
+
+// New is a function that returns a new instance of the Svc struct.
+func New(
+	l zerolog.Logger,
+	iconikCfg *config.Iconik,
+	api API,
+	val validate.Validator,
+) *Svc {
+	return &Svc{
+		l:         l,
+		iconikCfg: iconikCfg,
+		api:       api,
+		val:       val,
+	}
+}
+
+func (svc *Svc) ReadCSVFile() ([][]string, error) {
+	csvFile, err := os.Open(svc.iconikCfg.Input)
 	if err != nil {
 		return nil, errors.New("error opening CSV file")
 	}
@@ -31,7 +69,7 @@ func (i *Iconik) ReadCSVFile() ([][]string, error) {
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
-func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
+func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]string) error {
 	csvHeaders := metadataFile[0]
 
 	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
@@ -39,7 +77,7 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 		return errors.New("CSV file not properly formatted for Iconik")
 	}
 
-	matchingData, nonMatchingHeaders, err := i.matchCSVtoAPI(metadataFile)
+	matchingData, nonMatchingHeaders, err := utils.MatchCSVtoAPI(viewFields, metadataFile)
 	if err != nil {
 		return err
 	}
@@ -55,39 +93,42 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	matchingFileHeaderNames := matchingData[0]
 	matchingFileHeaderLabels := matchingData[1]
 
-	i.IconikClient.Config.CSVFilesToUpdate = len(matchingData) - 2
-	fmt.Println("Amount of files to update:", i.IconikClient.Config.CSVFilesToUpdate)
+	var c csvdomain.CSV
+
+	c.CSVFilesToUpdate = len(matchingData) - 2
+	fmt.Println("Amount of files to update:", c.CSVFilesToUpdate)
 
 	for index := 2; index < len(matchingData); index++ {
 		row := matchingData[index]
 
-		csvMetadata := CSVMetadata{
+		csvMetadata := csvdomain.CSVMetadata{
 			Added: false,
-			IDStruct: IDStruct{
+			IDStruct: csvdomain.IDStruct{
 				ID: row[0],
 			},
-			OriginalNameStruct: OriginalNameStruct{
+			OriginalNameStruct: csvdomain.OriginalNameStruct{
 				OriginalName: row[1],
 			},
-			SizeStruct: SizeStruct{
+			SizeStruct: csvdomain.SizeStruct{
 				Size: row[2],
 			},
-			TitleStruct: TitleStruct{
+			TitleStruct: csvdomain.TitleStruct{
 				Title: row[3],
 			},
-			MetadataValuesStruct: MetadataValuesStruct{
+			MetadataValuesStruct: csvdomain.MetadataValuesStruct{
 				MetadataValues: make(map[string]struct {
-					FieldValues []FieldValue `json:"field_values"`
+					FieldValues []csvdomain.FieldValue `json:"field_values"`
 				}),
 			},
 		}
 
-		i.IconikClient.Config.CSVMetadata = append(i.IconikClient.Config.CSVMetadata, &csvMetadata)
+		c.CSVMetadata = append(c.CSVMetadata, &csvMetadata)
 
-		err := i.validateAssetID(index - 2)
-		err2 := i.validateFilename(index - 2)
-		if err != nil && err2 != nil {
-			log.Printf("%s & %s, skipping\n", err, err2)
+		errAssetID := svc.val.AssetID(objects, csvMetadata, ctx)
+		errFilename := svc.val.Filename(objects, csvMetadata)
+
+		if errAssetID != nil && errFilename != nil {
+			log.Printf("%s & %s, skipping\n", errAssetID, errFilename)
 			continue
 		}
 		csvMetadata.Added = true
@@ -95,21 +136,21 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 		for count := 4; count < len(row); count++ {
 			headerName := matchingFileHeaderNames[count]
 			headerLabel := matchingFileHeaderLabels[count]
-			fieldValueSlice := make([]FieldValue, 0)
+			fieldValueSlice := make([]csvdomain.FieldValue, 0)
 
 			valueArr := strings.Split(row[count], ",")
-			if !isBlankStringArray(valueArr) {
+			if !utils.IsBlankStringArray(valueArr) {
 				for _, val := range valueArr {
 
-					err = SchemaValidator(headerLabel, val)
+					err = svc.val.Schema(headerLabel, val)
 					if err != nil {
 						return err
 					}
 
-					fieldValueSlice = append(fieldValueSlice, FieldValue{Value: val})
+					fieldValueSlice = append(fieldValueSlice, csvdomain.FieldValue{Value: val})
 				}
 				csvMetadata.MetadataValuesStruct.MetadataValues[headerName] = struct {
-					FieldValues []FieldValue `json:"field_values"`
+					FieldValues []csvdomain.FieldValue `json:"field_values"`
 				}{
 					FieldValues: fieldValueSlice,
 				}
@@ -118,8 +159,25 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 			}
 		}
 
-		err = i.updateTitle(index - 2)
+		assetPayload, err := json.Marshal(csvMetadata.TitleStruct)
 		if err != nil {
+			return errors.New("error marshaling JSON")
+		}
+
+		_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, assetPayload)
+		if err != nil {
+			log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
+			return err
+		}
+
+		metadataPayload, err := json.Marshal(csvMetadata.MetadataValuesStruct)
+		if err != nil {
+			return errors.New("error marshaling JSON")
+		}
+
+		_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, assetPayload)
+		if err != nil {
+			log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
 			return err
 		}
 
@@ -132,57 +190,43 @@ func (i *Iconik) UpdateIconik(metadataFile [][]string) error {
 	fmt.Println()
 	log.Println("Assets successfully updated:")
 	var countSuccess int
-	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
+	for _, csvMetadata := range c.CSVMetadata {
 		if csvMetadata.Added {
 			countSuccess++
 		}
 	}
-	fmt.Printf("%d of %d", countSuccess, i.IconikClient.Config.CSVFilesToUpdate)
+	fmt.Printf("%d of %d", countSuccess, c.CSVFilesToUpdate)
 
 	fmt.Println()
 	log.Println("Assets that failed to update:")
 	var countFailed int
-	for _, csvMetadata := range i.IconikClient.Config.CSVMetadata {
+	for _, csvMetadata := range c.CSVMetadata {
 		if !csvMetadata.Added {
 			countFailed++
 			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
-	fmt.Printf("%d of %d\n", countFailed, i.IconikClient.Config.CSVFilesToUpdate)
+	fmt.Printf("%d of %d\n", countFailed, c.CSVFilesToUpdate)
 
 	return nil
 }
 
-func (i *Iconik) updateTitle(index int) error {
-	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].TitleStruct)
+func (svc *Svc) UpdateTitle(csvMetadata csvdomain.CSVMetadata) error {
+	payload, err := json.Marshal(csvMetadata.TitleStruct)
 	if err != nil {
 		return errors.New("error marshaling JSON")
 	}
 
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Path, i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
+	_, err = svc.api.PatchAsset(ctx, iconik.AssetsPath, csvMetadata.IDStruct.ID, payload)
 	if err != nil {
-		return err
-	}
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-
-	res, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Asset.Patch.Method, u.String(), bytes.NewBuffer(requestBody))
-
-	if res.StatusCode == 200 {
-	} else {
-		log.Println("Error updating title name for asset ", i.IconikClient.Config.CSVMetadata[index].IDStruct.ID)
-		log.Println("resBody:", string(resBody))
-		log.Println(fmt.Sprint(res.StatusCode))
+		log.Println("Error updating title name for asset ", csvMetadata.IDStruct.ID)
 		return err
 	}
 
 	return nil
 }
 
-func (i *Iconik) updateMetadata(index int) error {
+func (svc *Svc) UpdateMetadata(index int) error {
 	requestBody, err := json.Marshal(i.IconikClient.Config.CSVMetadata[index].MetadataValuesStruct)
 	if err != nil {
 		return errors.New("error marshaling JSON")
@@ -267,49 +311,6 @@ func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
 
 	return nil
 }
-
-// // GetCollection gets all the results from a collection and return the full object list with metadata.
-// func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
-// 	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	u, err := url.Parse(result)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-// 	queryParams := u.Query()
-// 	queryParams.Set("per_page", "500")
-// 	queryParams.Set("page", strconv.Itoa(pageNo))
-// 	u.RawQuery = queryParams.Encode()
-//
-// 	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	var c Collection
-//
-// 	err = json.Unmarshal(resBody, &c)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	if c.Errors != nil {
-// 		return errors.New(fmt.Sprintf("%v", c.Errors))
-// 	}
-//
-// 	if c.Pages > 1 && c.Pages > pageNo {
-// 		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
-// 			return err
-// 		}
-// 	}
-//
-// 	return nil
-// }
 
 func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
 	for _, o := range c.Objects {
