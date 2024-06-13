@@ -11,4 +11,5 @@ import (
 type Servicer interface {
 	GetAsset(ctx context.Context, path, assetID string) (assets.DTO, error)
 	UpdateAsset(ctx context.Context, path, assetID string, payload []byte) (assets.DTO, error)
+	ValidateAsset(ctx context.Context, assetID string) error
 }

@@ -1,48 +1,119 @@
-package reader
+package input
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
+	collDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
+	metadataDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/validate"
-	"log"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
-
-	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/metadata"
 	"github.com/base-media-cloud/pd-iconik-io-rd/utils"
+	"log"
+	"os"
+	"strings"
 )
 
 // Svc is a struct that implements the iconik servicer ports.
 type Svc struct {
-	collSvc  collections.Servicer
-	assetSvc assets.Servicer
-	val      validate.Validator
+	collSvc     collections.Servicer
+	assetSvc    assets.Servicer
+	metadataSvc metadata.Servicer
 }
 
-// New is a function that returns a new instance of iconik Svc struct.
+// New is a function that returns a new instance of the iconik Svc struct.
 func New(
 	collSvc collections.Servicer,
 	assetSvc assets.Servicer,
-	val validate.Validator,
+	metadataSvc metadata.Servicer,
 ) *Svc {
 	return &Svc{
-		collSvc:  collSvc,
-		assetSvc: assetSvc,
-		val:      val,
+		collSvc:     collSvc,
+		assetSvc:    assetSvc,
+		metadataSvc: metadataSvc,
 	}
 }
 
-func (svc *Svc) ReadCSVFile(iconikCfg *config.Iconik) ([][]string, error) {
-	csvFile, err := os.Open(iconikCfg.Input)
+// GetMetadataView retrieves a Metadata view from the iconik API.
+func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadataDomain.DTO, error) {
+	view, err := svc.metadataSvc.GetMetadataView(ctx, iconik.MetadataPath, viewID)
+	if err != nil {
+		return metadataDomain.DTO{}, err
+	}
+
+	if view.Errors != nil {
+		return metadataDomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
+	}
+
+	return view, nil
+}
+
+// GetCollectionObjects gets all the results from a collection and returns the full object list.
+func (svc *Svc) GetCollectionObjects(ctx context.Context, collectionID string, pageNo int, objects []collDomain.ObjectDTO) ([]collDomain.ObjectDTO, error) {
+	coll, err := svc.collSvc.GetContents(ctx, iconik.CollectionsPath, collectionID, pageNo)
+	if err != nil {
+		return nil, err
+	}
+
+	if coll.Errors != nil {
+		return nil, errors.New(fmt.Sprintf("%v", coll.Errors))
+	}
+
+	objects = append(objects, coll.Objects...)
+
+	if coll.Pages > 1 && coll.Pages > pageNo {
+		objs, err := svc.GetCollectionObjects(ctx, collectionID, pageNo+1, objects)
+		if err != nil {
+			return nil, err
+		}
+
+		return objs, nil
+	}
+
+	return objects, nil
+}
+
+// ProcessObjects takes a slice of objects and returns assets only.
+func (svc *Svc) ProcessObjects(ctx context.Context, assets, objects []collDomain.ObjectDTO, assetsMap, collectionsMap map[string]struct{}) ([]collDomain.ObjectDTO, error) {
+	for _, o := range objects {
+		if o.ObjectType == "assets" {
+			if _, exists := assetsMap[o.ID]; !exists {
+				assets = append(assets, o)
+				assetsMap[o.ID] = struct{}{}
+			}
+		} else if o.ObjectType == "collections" {
+			if _, exists := collectionsMap[o.ID]; !exists {
+				fmt.Println()
+				fmt.Printf("found collection %s, traversing:\n", o.Title)
+				var err error
+				var objs []collDomain.ObjectDTO
+				objs, err = svc.GetCollectionObjects(ctx, o.ID, 1, objs)
+				if err != nil {
+					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
+					continue
+				}
+
+				collectionsMap[o.ID] = struct{}{}
+				a, err := svc.ProcessObjects(ctx, assets, objs, assetsMap, collectionsMap)
+				if err != nil {
+					return nil, err
+				}
+				return a, nil
+			}
+		}
+	}
+	return assets, nil
+}
+
+// ReadCSVFile reads a CSV file and returns it as a 2D slice.
+func (svc *Svc) ReadCSVFile(appCfg *config.App) ([][]string, error) {
+	csvFile, err := os.Open(appCfg.Input)
 	if err != nil {
 		return nil, errors.New("error opening CSV file")
 	}
@@ -59,7 +130,7 @@ func (svc *Svc) ReadCSVFile(iconikCfg *config.Iconik) ([][]string, error) {
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
-func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]string, iconikCfg *config.Iconik) error {
+func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.ViewFieldDTO, assets []collDomain.ObjectDTO, metadataFile [][]string, cfg *config.App) error {
 	csvHeaders := metadataFile[0]
 
 	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
@@ -114,8 +185,15 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 
 		c.CSVMetadata = append(c.CSVMetadata, &csvMetadata)
 
-		errAssetID := svc.val.AssetID(objects, csvMetadata, ctx)
-		errFilename := svc.val.Filename(objects, csvMetadata)
+		errAssetID := svc.assetSvc.ValidateAsset(ctx, csvMetadata.IDStruct.ID)
+		for _, asset := range assets {
+			for _, file := range asset.Files {
+				if asset.ID == csvMetadata.IDStruct.ID {
+					csvMetadata.OriginalNameStruct.OriginalName = file.OriginalName
+				}
+			}
+		}
+		errFilename := utils.ValidateFilename(assets, csvMetadata)
 
 		if errAssetID != nil && errFilename != nil {
 			log.Printf("%s & %s, skipping\n", errAssetID, errFilename)
@@ -132,7 +210,7 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 			if !utils.IsBlankStringArray(valueArr) {
 				for _, val := range valueArr {
 
-					err = svc.val.Schema(headerLabel, val)
+					err = utils.ValidateSchema(headerLabel, val)
 					if err != nil {
 						return err
 					}
@@ -165,7 +243,7 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 			return errors.New("error marshaling JSON")
 		}
 
-		_, err = svc.api.UpdateMetadataInAsset(ctx, iconik.AssetsPath, iconikCfg.ViewID, csvMetadata.IDStruct.ID, metadataPayload)
+		_, err = svc.metadataSvc.UpdateMetadataInAsset(ctx, iconik.AssetsPath, cfg.ViewID, csvMetadata.IDStruct.ID, metadataPayload)
 		if err != nil {
 			log.Println("Error updating metadata for asset ", csvMetadata.IDStruct.ID)
 			return err
@@ -193,82 +271,5 @@ func (svc *Svc) UpdateIconik(viewFields []*metadata.ViewField, metadataFile [][]
 	}
 	fmt.Printf("%d of %d\n", countFailed, c.CSVFilesToUpdate)
 
-	return nil
-}
-
-// GetCollection gets all the results from a collection and return the full object list with metadata.
-func (i *Iconik) GetCollection(collectionID string, pageNo int) error {
-	result, err := url.JoinPath(i.IconikClient.Config.APIConfig.Host, i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Path, collectionID, "/contents/")
-	if err != nil {
-		return err
-	}
-
-	u, err := url.Parse(result)
-	if err != nil {
-		return err
-	}
-
-	u.Scheme = i.IconikClient.Config.APIConfig.Scheme
-	queryParams := u.Query()
-	queryParams.Set("per_page", "500")
-	queryParams.Set("page", strconv.Itoa(pageNo))
-	u.RawQuery = queryParams.Encode()
-
-	_, resBody, err := i.getResponseBody(i.IconikClient.Config.APIConfig.Endpoints.Collection.Get.Method, u.String(), nil)
-	if err != nil {
-		return err
-	}
-
-	switch {
-	default:
-		err = json.Unmarshal(resBody, &i.IconikClient.Collection)
-		if err != nil {
-			return err
-		}
-	case i.IconikClient.Collection != nil:
-		var c *Collection
-		err = json.Unmarshal(resBody, &c)
-		if err != nil {
-			return err
-		}
-		i.IconikClient.Collection.Objects = append(i.IconikClient.Collection.Objects, c.Objects...)
-	}
-
-	if i.IconikClient.Collection.Errors != nil {
-		return errors.New(fmt.Sprintf("%v", i.IconikClient.Collection.Errors))
-	}
-
-	if i.IconikClient.Collection.Pages > 1 && i.IconikClient.Collection.Pages > pageNo {
-		if err := i.GetCollection(collectionID, pageNo+1); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (i *Iconik) ProcessObjects(c *Collection, assetsMap, collectionsMap map[string]struct{}) error {
-	for _, o := range c.Objects {
-		if o.ObjectType == "assets" {
-			if _, exists := assetsMap[o.ID]; !exists {
-				i.IconikClient.Assets = append(i.IconikClient.Assets, o)
-				assetsMap[o.ID] = struct{}{}
-			}
-		} else if o.ObjectType == "collections" {
-			if _, exists := collectionsMap[o.ID]; !exists {
-				fmt.Println()
-				fmt.Printf("found collection %s, traversing:\n", o.Title)
-				err := i.GetCollection(o.ID, 1)
-				if err != nil {
-					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
-					continue
-				}
-				collectionsMap[o.ID] = struct{}{}
-				if err := i.ProcessObjects(i.IconikClient.Collection, assetsMap, collectionsMap); err != nil {
-					return err
-				}
-			}
-		}
-	}
 	return nil
 }

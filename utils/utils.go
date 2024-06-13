@@ -1,12 +1,10 @@
 package utils
 
 import (
-	"fmt"
-	"github.com/base-media-cloud/pd-iconik-io-rd/app/cmd"
-	"github.com/base-media-cloud/pd-iconik-io-rd/pkg/iconikio"
+	metadataDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 )
 
-func MatchCSVtoAPI(viewFields []*iconikio.ViewField, csvData [][]string) ([][]string, []string, error) {
+func MatchCSVtoAPI(viewFields []metadataDomain.ViewFieldDTO, csvData [][]string) ([][]string, []string, error) {
 
 	csvHeaderLabels := csvData[0]
 
@@ -75,14 +73,4 @@ func IsBlankStringArray(arr []string) bool {
 		}
 	}
 	return true
-}
-
-func VersionInfo() {
-	fmt.Printf(`
-base iconik-io
-iconik CSV read/write tool
-Version: %s | Build: %s
-Copyright © 2023 Base Media Cloud Limited
-https://base-mc.com
-`, cmd.Version, cmd.Build)
 }

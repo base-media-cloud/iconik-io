@@ -9,5 +9,6 @@ import (
 
 // Servicer is an interface that defines the methods that a service must implement.
 type Servicer interface {
-	GetCollectionContents(ctx context.Context, path, collectionID string) (collections.ContentsDTO, error)
+	GetContents(ctx context.Context, path, collectionID string, pageNo int) (collections.ContentsDTO, error)
+	GetCollection(ctx context.Context, path, collectionID string) (collections.CollectionDTO, error)
 }

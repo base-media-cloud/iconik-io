@@ -1,14 +1,16 @@
-package assets
+package metadata
 
 import (
 	"context"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/assets"
+	"errors"
+	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 )
 
-// API is an interface that defines the operations that can be performed on the metadata assets endpoint.
+// API is an interface that defines the operations that can be performed on the metadata endpoint.
 type API interface {
 	UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID string, payload []byte) (metadata.DTO, error)
+	GetMetadataView(ctx context.Context, path, viewID string) (metadata.DTO, error)
 }
 
 type Svc struct {
@@ -26,19 +28,23 @@ func New(
 
 // UpdateMetadataInAsset updates an assets metadata in the iconik api.
 func (s *Svc) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID string, payload []byte) (metadata.DTO, error) {
-	dto, err := s.api.UpdateMetadataInAsset(ctx, path, assetID)
+	dto, err := s.api.UpdateMetadataInAsset(ctx, path, viewID, assetID, payload)
 	if err != nil {
-		return assets.DTO{}, err
+		return metadata.DTO{}, err
 	}
 
 	return dto, nil
 }
 
-// UpdateAsset updates an asset in the iconik api.
-func (s *Svc) UpdateAsset(ctx context.Context, path, assetID string, payload []byte) (assets.DTO, error) {
-	dto, err := s.api.PatchAsset(ctx, path, assetID, payload)
+// GetMetadataView gets a metadata view from the iconik api.
+func (s *Svc) GetMetadataView(ctx context.Context, path, viewID string) (metadata.DTO, error) {
+	dto, err := s.api.GetMetadataView(ctx, path, viewID)
 	if err != nil {
-		return assets.DTO{}, err
+		return metadata.DTO{}, err
+	}
+
+	if dto.Errors != nil {
+		return metadata.DTO{}, errors.New(fmt.Sprintf("%v", dto.Errors))
 	}
 
 	return dto, nil

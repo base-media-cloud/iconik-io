@@ -69,10 +69,6 @@ func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, e
 			retry.OnRetry(onRetry),
 		)
 	case *statusCode != http.StatusOK:
-		zerolog.Ctx(ctxTimeout).Error().
-			Err(err).
-			Int("status code", *statusCode).
-			Msg("status code unexpected")
 		return assets.DTO{}, err
 	}
 
@@ -151,10 +147,6 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 			retry.OnRetry(onRetry),
 		)
 	case *statusCode != http.StatusOK:
-		zerolog.Ctx(ctxTimeout).Error().
-			Err(err).
-			Int("status code", *statusCode).
-			Msg("status code unexpected")
 		return assets.DTO{}, err
 	}
 

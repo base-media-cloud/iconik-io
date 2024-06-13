@@ -27,14 +27,14 @@ type Requester interface {
 
 // API is a wrapper struct for all iconik endpoints.
 type API struct {
-	cfg     *config.Iconik
+	cfg     *config.App
 	req     Requester
 	url     string
 	headers *syncmap.Map
 }
 
 // New is a function that returns a new instance of the API struct.
-func New(cfg *config.Iconik, req Requester) *API {
+func New(cfg *config.App, req Requester) *API {
 	headersSyncMap := syncmap.Map{}
 	headersSyncMap.Store("App-ID", cfg.AppID)
 	headersSyncMap.Store("Auth-Token", cfg.AuthToken)

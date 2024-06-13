@@ -1,5 +1,7 @@
 package collections
 
+import "time"
+
 // Contents is the top level data structure that receives the unmarshalled payload
 // response from GET collection contents (/API/assets/v1/collections/{collection-id}/contents).
 type Contents struct {
@@ -10,10 +12,11 @@ type Contents struct {
 
 // Object acts as a non nested struct to the Objects type in Contents.
 type Object struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	Files      []File `json:"files"`
-	ObjectType string `json:"object_type"`
+	ID         string                   `json:"id"`
+	Metadata   map[string][]interface{} `json:"metadata"`
+	Title      string                   `json:"title"`
+	Files      []File                   `json:"files"`
+	ObjectType string                   `json:"object_type"`
 }
 
 // File acts as a non nested struct to the Files type in Object.
@@ -78,5 +81,29 @@ func (f *File) ToFileDTO() FileDTO {
 // Collection is the top level data structure that receives the unmarshalled payload
 // response from GET collection (/API/assets/v1/collections/{collection-id}).
 type Collection struct {
-	Title string
+	CreatedByUser     string    `json:"created_by_user"`
+	CustomOrderStatus string    `json:"custom_order_status"`
+	DateCreated       time.Time `json:"date_created"`
+	DateModified      time.Time `json:"date_modified"`
+	ID                string    `json:"id"`
+	IsRoot            bool      `json:"is_root"`
+	KeyframeAssetIds  []string  `json:"keyframe_asset_ids"`
+	ObjectType        string    `json:"object_type"`
+	Status            string    `json:"status"`
+	Title             string    `json:"title"`
+}
+
+func (co *Collection) ToCollectionDTO() CollectionDTO {
+	return CollectionDTO{
+		CreatedByUser:     co.CreatedByUser,
+		CustomOrderStatus: co.CustomOrderStatus,
+		DateCreated:       co.DateCreated,
+		DateModified:      co.DateModified,
+		ID:                co.ID,
+		IsRoot:            co.IsRoot,
+		KeyframeAssetIds:  co.KeyframeAssetIds,
+		ObjectType:        co.ObjectType,
+		Status:            co.Status,
+		Title:             co.Title,
+	}
 }

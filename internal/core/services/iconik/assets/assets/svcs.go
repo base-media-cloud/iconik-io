@@ -2,7 +2,11 @@ package assets
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/assets"
+	"github.com/google/uuid"
 )
 
 // API is an interface that defines the operations that can be performed on the assets endpoint.
@@ -42,4 +46,19 @@ func (s *Svc) UpdateAsset(ctx context.Context, path, assetID string, payload []b
 	}
 
 	return dto, nil
+}
+
+// ValidateAsset validates an asset in the iconik api.
+func (s *Svc) ValidateAsset(ctx context.Context, assetID string) error {
+	_, err := uuid.Parse(assetID)
+	if err != nil {
+		return errors.New("not a valid asset ID")
+	}
+
+	_, err = s.api.GetAsset(ctx, iconik.AssetsPath, assetID)
+	if err != nil {
+		return fmt.Errorf("asset %s not found on iconik servers", assetID)
+	}
+
+	return fmt.Errorf("asset %s does not exist in given collection id", assetID)
 }

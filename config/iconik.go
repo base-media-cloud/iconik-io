@@ -3,9 +3,6 @@ package config
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"github.com/base-media-cloud/pd-iconik-io-rd/utils"
-	"os"
 	"time"
 )
 
@@ -16,8 +13,6 @@ type Iconik struct {
 	AuthToken              string
 	CollectionID           string
 	ViewID                 string
-	Input                  string
-	Output                 string
 	OperationTimeout       time.Duration `env:"ICONIK_OPERATION_TIMEOUT,default=30s"`
 	OperationRetryAttempts uint          `env:"ICONIK_OPERATION_RETRY_ATTEMPTS,default=1"`
 	OperationRetryDelay    time.Duration `env:"ICONIK_OPERATION_RETRY_DELAY,default=3s"`
@@ -32,21 +27,7 @@ func NewIconik() (*Iconik, error) {
 	flag.StringVar(&cfg.AuthToken, "auth-token", "", "iconik Authentication token")
 	flag.StringVar(&cfg.CollectionID, "collection-id", "", "iconik Collection ID")
 	flag.StringVar(&cfg.ViewID, "metadata-view-id", "", "iconik Metadata View ID")
-	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
-	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
-	ver := flag.Bool("version", false, "Print version")
 	flag.Parse()
-
-	if flag.NFlag() == 0 {
-		fmt.Println("Usage:")
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
-
-	if *ver {
-		utils.VersionInfo()
-		return nil, nil
-	}
 
 	if cfg.AppID == "" {
 		return nil, errors.New("no App-Id provided")
@@ -59,11 +40,6 @@ func NewIconik() (*Iconik, error) {
 	}
 	if cfg.ViewID == "" {
 		return nil, errors.New("no Metadata View ID provided")
-	}
-	if cfg.Input == "" && cfg.Output == "" {
-		fmt.Println("neither input or output mode selected")
-		utils.VersionInfo()
-		return nil, nil
 	}
 
 	return &cfg, nil
