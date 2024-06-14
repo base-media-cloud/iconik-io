@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/input"
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/output"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
@@ -15,7 +14,6 @@ import (
 	outputsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/output"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/logger"
 	"net/http"
-	"time"
 )
 
 var (
@@ -24,8 +22,6 @@ var (
 )
 
 func main() {
-	start := time.Now()
-
 	l := logger.New()
 
 	cfg, err := config.NewApp(build, version)
@@ -50,12 +46,10 @@ func main() {
 	}
 
 	if cfg.Type == output.AppType {
-		outputSvc := outputsvc.New(collSvc, assetSvc, metadataSvc, searchSvc)
+		outputSvc := outputsvc.New(collSvc, metadataSvc, searchSvc)
 		if err = output.Run(cfg, outputSvc, l); err != nil {
 			l.Fatal().Err(err).Msg("error running output mode")
 		}
 		return
 	}
-
-	fmt.Printf("\n completed, took %v\n", time.Since(start))
 }

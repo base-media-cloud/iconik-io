@@ -10,7 +10,6 @@ import (
 	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	metadatadomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 	searchdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/search"
-	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/metadata"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/search"
@@ -21,7 +20,6 @@ import (
 // Svc is a struct that implements the iconik servicer ports.
 type Svc struct {
 	collSvc     collections.Servicer
-	assetSvc    assets.Servicer
 	metadataSvc metadata.Servicer
 	searchSvc   search.Servicer
 }
@@ -29,13 +27,11 @@ type Svc struct {
 // New is a function that returns a new instance of iconik Svc struct.
 func New(
 	collSvc collections.Servicer,
-	assetSvc assets.Servicer,
 	metadataSvc metadata.Servicer,
 	searchSvc search.Servicer,
 ) *Svc {
 	return &Svc{
 		collSvc:     collSvc,
-		assetSvc:    assetSvc,
 		metadataSvc: metadataSvc,
 		searchSvc:   searchSvc,
 	}
