@@ -96,7 +96,6 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID string, payload []byte) (metadata.DTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("updating metadata for asset " + assetID + " using " + viewID + " in iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,

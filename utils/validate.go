@@ -2,8 +2,7 @@ package utils
 
 import (
 	"fmt"
-	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
-	collDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
+	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	"strconv"
 	"strings"
 )
@@ -44,15 +43,14 @@ func ValidateSchema(header, val string) error {
 	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
 }
 
-func ValidateFilename(objects []collDomain.ObjectDTO, csvMetadata csvdomain.CSVMetadata) error {
+func ValidateFilename(objects []colldomain.ObjectDTO, origName string) (string, error) {
 	for _, object := range objects {
 		for _, file := range object.Files {
-			if file.OriginalName == csvMetadata.OriginalNameStruct.OriginalName {
-				csvMetadata.IDStruct.ID = object.ID
-				return nil
+			if file.OriginalName == origName {
+				return object.ID, nil
 			}
 		}
 	}
 
-	return fmt.Errorf("file %s does not exist in given collection id", csvMetadata.OriginalNameStruct.OriginalName)
+	return "", fmt.Errorf("file %s does not exist in given collection id", origName)
 }

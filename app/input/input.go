@@ -15,7 +15,6 @@ const AppType = "input"
 // Run runs the functions to input data from a csv into iconik.
 func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 	ctx := l.WithContext(context.Background())
-	zerolog.Ctx(ctx).Info().Msg("running input")
 
 	var err error
 
@@ -53,8 +52,6 @@ func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to update iconik")
 		return err
 	}
-
-	zerolog.Ctx(ctx).Info().Msg("input complete")
 
 	return nil
 }

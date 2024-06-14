@@ -94,7 +94,6 @@ func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, e
 func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []byte) (assets.DTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("updating asset " + assetID + " in iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
