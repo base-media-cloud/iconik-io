@@ -9,8 +9,8 @@ import (
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
 	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
-	collDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
-	metadataDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
+	metadatadomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/metadata"
@@ -41,21 +41,21 @@ func New(
 }
 
 // GetMetadataView retrieves a Metadata view from the iconik API.
-func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadataDomain.DTO, error) {
+func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadatadomain.DTO, error) {
 	view, err := svc.metadataSvc.GetMetadataView(ctx, iconik.MetadataPath, viewID)
 	if err != nil {
-		return metadataDomain.DTO{}, err
+		return metadatadomain.DTO{}, err
 	}
 
 	if view.Errors != nil {
-		return metadataDomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
+		return metadatadomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
 	}
 
 	return view, nil
 }
 
 // GetCollectionObjects gets all the results from a collection and returns the full object list.
-func (svc *Svc) GetCollectionObjects(ctx context.Context, collectionID string, pageNo int, objects []collDomain.ObjectDTO) ([]collDomain.ObjectDTO, error) {
+func (svc *Svc) GetCollectionObjects(ctx context.Context, collectionID string, pageNo int, objects []colldomain.ObjectDTO) ([]colldomain.ObjectDTO, error) {
 	coll, err := svc.collSvc.GetContents(ctx, iconik.CollectionsPath, collectionID, pageNo)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (svc *Svc) GetCollectionObjects(ctx context.Context, collectionID string, p
 }
 
 // ProcessObjects takes a slice of objects and returns assets only.
-func (svc *Svc) ProcessObjects(ctx context.Context, assets, objects []collDomain.ObjectDTO, assetsMap, collectionsMap map[string]struct{}) ([]collDomain.ObjectDTO, error) {
+func (svc *Svc) ProcessObjects(ctx context.Context, assets, objects []colldomain.ObjectDTO, assetsMap, collectionsMap map[string]struct{}) ([]colldomain.ObjectDTO, error) {
 	for _, o := range objects {
 		if o.ObjectType == "assets" {
 			if _, exists := assetsMap[o.ID]; !exists {
@@ -92,7 +92,7 @@ func (svc *Svc) ProcessObjects(ctx context.Context, assets, objects []collDomain
 				fmt.Println()
 				fmt.Printf("found collection %s, traversing:\n", o.Title)
 				var err error
-				var objs []collDomain.ObjectDTO
+				var objs []colldomain.ObjectDTO
 				objs, err = svc.GetCollectionObjects(ctx, o.ID, 1, objs)
 				if err != nil {
 					fmt.Println("Error fetching data for collection with ID", o.ID, "Error:", err)
@@ -130,7 +130,7 @@ func (svc *Svc) ReadCSVFile(appCfg *config.App) ([][]string, error) {
 }
 
 // UpdateIconik reads a 2D slice, verifies it, and uploads the data to the Iconik API.
-func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.ViewFieldDTO, assets []collDomain.ObjectDTO, metadataFile [][]string, cfg *config.App) error {
+func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.ViewFieldDTO, assets []colldomain.ObjectDTO, metadataFile [][]string, cfg *config.App) error {
 	csvHeaders := metadataFile[0]
 
 	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
@@ -156,11 +156,19 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 
 	var c csvdomain.CSV
 
-	c.CSVFilesToUpdate = len(matchingData) - 2
-	fmt.Println("Amount of files to update:", c.CSVFilesToUpdate)
+	csvFilesToUpdate := len(matchingData) - 2
+	fmt.Println("Amount of files to update:", csvFilesToUpdate)
 
 	for index := 2; index < len(matchingData); index++ {
 		row := matchingData[index]
+
+		metadataValues := metadatadomain.Values{
+			MetadataValues: map[string]struct {
+				FieldValues []metadatadomain.FieldValue `json:"field_values"`
+			}(make(map[string]struct {
+				FieldValues []metadatadomain.FieldValue
+			})),
+		}
 
 		csvMetadata := csvdomain.CSVMetadata{
 			Added: false,
@@ -175,11 +183,6 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 			},
 			TitleStruct: csvdomain.TitleStruct{
 				Title: row[3],
-			},
-			MetadataValuesStruct: csvdomain.MetadataValuesStruct{
-				MetadataValues: make(map[string]struct {
-					FieldValues []csvdomain.FieldValue `json:"field_values"`
-				}),
 			},
 		}
 
@@ -204,7 +207,7 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 		for count := 4; count < len(row); count++ {
 			headerName := matchingFileHeaderNames[count]
 			headerLabel := matchingFileHeaderLabels[count]
-			fieldValueSlice := make([]csvdomain.FieldValue, 0)
+			fieldValueSlice := make([]metadatadomain.FieldValue, 0)
 
 			valueArr := strings.Split(row[count], ",")
 			if !utils.IsBlankStringArray(valueArr) {
@@ -215,10 +218,10 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 						return err
 					}
 
-					fieldValueSlice = append(fieldValueSlice, csvdomain.FieldValue{Value: val})
+					fieldValueSlice = append(fieldValueSlice, metadatadomain.FieldValue{Value: val})
 				}
-				csvMetadata.MetadataValuesStruct.MetadataValues[headerName] = struct {
-					FieldValues []csvdomain.FieldValue `json:"field_values"`
+				metadataValues.MetadataValues[headerName] = struct {
+					FieldValues []metadatadomain.FieldValue `json:"field_values"`
 				}{
 					FieldValues: fieldValueSlice,
 				}
@@ -238,7 +241,7 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 			return err
 		}
 
-		metadataPayload, err := json.Marshal(csvMetadata.MetadataValuesStruct)
+		metadataPayload, err := json.Marshal(metadataValues)
 		if err != nil {
 			return errors.New("error marshaling JSON")
 		}
@@ -258,7 +261,7 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 			countSuccess++
 		}
 	}
-	fmt.Printf("%d of %d", countSuccess, c.CSVFilesToUpdate)
+	fmt.Printf("%d of %d", countSuccess, csvFilesToUpdate)
 
 	fmt.Println()
 	log.Println("Assets that failed to update:")
@@ -269,7 +272,7 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadataDomain.Vi
 			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
 		}
 	}
-	fmt.Printf("%d of %d\n", countFailed, c.CSVFilesToUpdate)
+	fmt.Printf("%d of %d\n", countFailed, csvFilesToUpdate)
 
 	return nil
 }

@@ -1,17 +1,15 @@
 package csv
 
 type CSV struct {
-	CSVFilesToUpdate int
-	CSVMetadata      []*CSVMetadata
+	CSVMetadata []*CSVMetadata
 }
 
 type CSVMetadata struct {
-	Added                bool
-	IDStruct             IDStruct
-	OriginalNameStruct   OriginalNameStruct
-	SizeStruct           SizeStruct
-	TitleStruct          TitleStruct
-	MetadataValuesStruct MetadataValuesStruct
+	Added              bool
+	IDStruct           IDStruct
+	OriginalNameStruct OriginalNameStruct
+	SizeStruct         SizeStruct
+	TitleStruct        TitleStruct
 }
 
 type IDStruct struct {
@@ -28,14 +26,4 @@ type SizeStruct struct {
 
 type TitleStruct struct {
 	Title string `json:"title"`
-}
-
-type MetadataValuesStruct struct {
-	MetadataValues map[string]struct {
-		FieldValues []FieldValue `json:"field_values"`
-	} `json:"metadata_values"`
-}
-
-type FieldValue struct {
-	Value string `json:"value"`
 }

@@ -59,10 +59,20 @@ func (v *ViewField) ToViewFieldDTO() ViewFieldDTO {
 	}
 }
 
-// ToOptionDTO is a method that converts a Option to a ViewFieldDTO.
+// ToOptionDTO is a method that converts an Option to an OptionDTO.
 func (o *Option) ToOptionDTO() OptionDTO {
 	return OptionDTO{
 		Label: o.Label,
 		Value: o.Value,
 	}
+}
+
+type Values struct {
+	MetadataValues map[string]struct {
+		FieldValues []FieldValue `json:"field_values"`
+	} `json:"metadata_values"`
+}
+
+type FieldValue struct {
+	Value string `json:"value"`
 }

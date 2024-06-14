@@ -16,7 +16,7 @@ func MatchCSVtoAPI(viewFields []metadataDomain.ViewFieldDTO, csvData [][]string)
 	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "title")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "id")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "original_name")
-	matchingIconikHeaderNames = append(matchingIconikHeaderNames, "size")
+	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "size")
 	matchingIconikHeaderLabels = append(matchingIconikHeaderLabels, "title")
 
 	var nonMatchingHeaders []string
