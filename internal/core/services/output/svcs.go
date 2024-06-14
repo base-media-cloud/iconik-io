@@ -3,14 +3,17 @@ package output
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
-	collDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
-	metadataDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
+	metadatadomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
+	searchdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/search"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/collections"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/metadata"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/search"
 	"strconv"
 	"strings"
 )
@@ -20,6 +23,7 @@ type Svc struct {
 	collSvc     collections.Servicer
 	assetSvc    assets.Servicer
 	metadataSvc metadata.Servicer
+	searchSvc   search.Servicer
 }
 
 // New is a function that returns a new instance of iconik Svc struct.
@@ -27,80 +31,79 @@ func New(
 	collSvc collections.Servicer,
 	assetSvc assets.Servicer,
 	metadataSvc metadata.Servicer,
+	searchSvc search.Servicer,
 ) *Svc {
 	return &Svc{
 		collSvc:     collSvc,
 		assetSvc:    assetSvc,
 		metadataSvc: metadataSvc,
+		searchSvc:   searchSvc,
 	}
 }
 
 // GetMetadataView retrieves a Metadata view from the iconik API.
-func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadataDomain.DTO, error) {
+func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadatadomain.DTO, error) {
 	view, err := svc.metadataSvc.GetMetadataView(ctx, iconik.MetadataPath, viewID)
 	if err != nil {
-		return metadataDomain.DTO{}, err
+		return metadatadomain.DTO{}, err
 	}
 
 	if view.Errors != nil {
-		return metadataDomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
+		return metadatadomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
 	}
 
 	return view, nil
 }
 
 // GetCollection retrieves a Collection from the iconik API.
-func (svc *Svc) GetCollection(ctx context.Context, collectionID string) (collDomain.CollectionDTO, error) {
+func (svc *Svc) GetCollection(ctx context.Context, collectionID string) (colldomain.CollectionDTO, error) {
 	coll, err := svc.collSvc.GetCollection(ctx, iconik.CollectionsPath, collectionID)
 	if err != nil {
-		return collDomain.CollectionDTO{}, err
+		return colldomain.CollectionDTO{}, err
 	}
 
 	return coll, nil
 }
 
-// ProcessColl takes a collection ID and recursively writes every collection
-// to a csv file one collection at a time.
-func (svc *Svc) ProcessColl(ctx context.Context, viewFields []metadataDomain.ViewFieldDTO, collectionID string, pageNo int, w *csv.Writer) error {
-	contents, err := svc.collSvc.GetContents(ctx, iconik.CollectionsPath, collectionID, pageNo)
+// ProcessPage processes each page of the iconik search results using search_after pagination.
+func (svc *Svc) ProcessPage(ctx context.Context, viewFields []metadatadomain.ViewFieldDTO, collectionID string, searchAfter []interface{}, w *csv.Writer) error {
+	s := searchdomain.Search{
+		DocTypes:      []string{"assets", "collections"},
+		Facets:        []string{"object_type", "media_type", "archive_status", "type", "format", "is_online", "approval_status"},
+		IncludeFields: []string{"id", "title", "files", "in_collections", "metadata", "files.size", "media_type"},
+		Sort: []searchdomain.Sort{
+			{Name: "date_created", Order: "desc"},
+		},
+		Query: "",
+		Filter: searchdomain.Filter{
+			Operator: "AND",
+			Terms: []searchdomain.Term{
+				{Name: "ancestor_collections", ValueIn: []string{collectionID}},
+				{Name: "status", ValueIn: []string{"ACTIVE"}},
+			},
+		},
+		FacetsFilters: []searchdomain.FacetsFilter{
+			{Name: "object_type", ValueIn: []string{"assets"}},
+		},
+		SearchFields: []string{"title", "description", "segment_text", "file_names", "metadata", "transcription_text"},
+		SearchAfter:  []interface{}{},
+	}
+
+	if len(searchAfter) > 0 {
+		s.SearchAfter = searchAfter
+	}
+
+	sPayload, err := json.Marshal(s)
 	if err != nil {
 		return err
 	}
 
-	if contents.Errors != nil {
-		return errors.New(fmt.Sprintf("%v, %v", contents.Errors, collectionID))
-	}
-
-	if err = svc.WriteCollToCSV(ctx, viewFields, contents, w); err != nil {
+	results, err := svc.searchSvc.Search(ctx, iconik.SearchPath, sPayload)
+	if err != nil {
 		return err
 	}
 
-	if contents.Pages > pageNo {
-		if err = svc.ProcessColl(ctx, viewFields, collectionID, pageNo+1, w); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// WriteCollToCSV writes the objects from the collection to a csv file
-// and will recursively call ProcessColl if another collection is found.
-func (svc *Svc) WriteCollToCSV(ctx context.Context, viewFields []metadataDomain.ViewFieldDTO, contents collDomain.ContentsDTO, w *csv.Writer) error {
-	var assets []collDomain.ObjectDTO
-
-	for j := range contents.Objects {
-		if contents.Objects[j].ObjectType == "collections" {
-			fmt.Printf("\nfound collection %s, collection id %s", contents.Objects[j].Title, contents.Objects[j].ID)
-			if err := svc.ProcessColl(ctx, viewFields, contents.Objects[j].ID, 1, w); err != nil {
-				return err
-			}
-			continue
-		}
-		assets = append(assets, contents.Objects[j])
-	}
-
-	toWrite, err := svc.FormatObjects(viewFields, assets)
+	toWrite, err := svc.FormatResultsObjects(viewFields, results.Objects)
 	if err != nil {
 		return err
 	}
@@ -109,10 +112,19 @@ func (svc *Svc) WriteCollToCSV(ctx context.Context, viewFields []metadataDomain.
 		return err
 	}
 
+	if len(results.Objects) > 0 {
+		lastObject := results.Objects[len(results.Objects)-1]
+		searchAfterNew := lastObject.Sort
+		if err = svc.ProcessPage(ctx, viewFields, collectionID, searchAfterNew, w); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (svc *Svc) FormatObjects(viewFields []metadataDomain.ViewFieldDTO, objs []collDomain.ObjectDTO) ([][]string, error) {
+// FormatResultsObjects formats the results of a search into a 2d slice, ready for writing.
+func (svc *Svc) FormatResultsObjects(viewFields []metadatadomain.ViewFieldDTO, objs []searchdomain.ObjectDTO) ([][]string, error) {
 	var metadataFile [][]string
 	var csvColumnsName []string
 
@@ -176,7 +188,8 @@ func (svc *Svc) FormatObjects(viewFields []metadataDomain.ViewFieldDTO, objs []c
 	return metadataFile, nil
 }
 
-func (svc *Svc) Headers(viewFields []metadataDomain.ViewFieldDTO) [][]string {
+// Headers writers the headers provided by a slice of ViewFieldDTO to a 2d slice, ready for writing.
+func (svc *Svc) Headers(viewFields []metadatadomain.ViewFieldDTO) [][]string {
 	var metadataFile [][]string
 	var csvColumnsLabel []string
 	for _, field := range viewFields {

@@ -13,6 +13,13 @@ import (
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 )
 
+const (
+	// PerPage is the key for the per_page param.
+	PerPage = "per_page"
+	// PageNo is the key for the page param.
+	PageNo = "page"
+)
+
 // Requester is an interface that defines the operations that can be performed on an http request.
 type Requester interface {
 	Do(

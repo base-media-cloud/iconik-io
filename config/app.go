@@ -21,6 +21,7 @@ type App struct {
 	OperationTimeout       time.Duration
 	OperationRetryAttempts uint
 	OperationRetryDelay    time.Duration
+	PerPage                int
 }
 
 // NewApp is a function that returns a new instance of the App struct.
@@ -30,6 +31,7 @@ func NewApp(build, version string) (*App, error) {
 	cfg.OperationTimeout = time.Second * 30
 	cfg.OperationRetryAttempts = 1
 	cfg.OperationRetryDelay = time.Second * 3
+	cfg.PerPage = 150
 
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")

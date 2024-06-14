@@ -15,7 +15,6 @@ import (
 func (a *API) GetCollectionContents(ctx context.Context, path, collectionID string, queryParams map[string]string) (collections.ContentsDTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("getting collection " + collectionID + " contents from iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
@@ -97,7 +96,6 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 func (a *API) GetCollection(ctx context.Context, path, collectionID string) (collections.CollectionDTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("getting collection " + collectionID + " from iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,

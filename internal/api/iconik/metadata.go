@@ -15,7 +15,6 @@ import (
 func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadata.DTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("getting metadata view " + viewID + " from iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,

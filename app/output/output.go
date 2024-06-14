@@ -17,7 +17,7 @@ const AppType = "output"
 // Run runs the functions to output data from iconik to a csv.
 func Run(cfg *config.App, outputSvc *outputsvc.Svc, l zerolog.Logger) error {
 	ctx := l.WithContext(context.Background())
-	zerolog.Ctx(ctx).Info().Msg("running output")
+	fmt.Println("Running output...")
 
 	var err error
 
@@ -47,10 +47,12 @@ func Run(cfg *config.App, outputSvc *outputsvc.Svc, l zerolog.Logger) error {
 		return err
 	}
 
-	if err = outputSvc.ProcessColl(ctx, view.ViewFields, cfg.CollectionID, 1, w); err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("failed to write headers to csv")
+	if err = outputSvc.ProcessPage(ctx, view.ViewFields, cfg.CollectionID, []interface{}{}, w); err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to write assets to csv")
 		return err
 	}
+
+	fmt.Println("Output complete. CSV created at " + filePath)
 
 	return nil
 }
