@@ -65,12 +65,3 @@ func contains(slice []string, value string) bool {
 	}
 	return false
 }
-
-func IsBlankStringArray(arr []string) bool {
-	for _, s := range arr {
-		if s != "" {
-			return false
-		}
-	}
-	return true
-}

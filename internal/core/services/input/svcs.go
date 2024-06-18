@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
-	csvdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/csv"
 	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	metadatadomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/ports/iconik/assets/assets"
@@ -153,10 +152,10 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 	matchingFileHeaderNames := matchingData[0]
 	matchingFileHeaderLabels := matchingData[1]
 
-	var c csvdomain.CSV
-
 	csvFilesToUpdate := len(matchingData) - 2
 	fmt.Println("Amount of files to update:", csvFilesToUpdate)
+
+	notAdded := make(map[string]string)
 
 	for index := 2; index < len(matchingData); index++ {
 		row := matchingData[index]
@@ -164,21 +163,6 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 		assetID := row[0]
 		origName := row[1]
 		title := row[3]
-
-		csvMetadata := csvdomain.CSVMetadata{
-			Added: false,
-			IDStruct: csvdomain.IDStruct{
-				ID: row[0],
-			},
-			OriginalNameStruct: csvdomain.OriginalNameStruct{
-				OriginalName: row[1],
-			},
-			TitleStruct: csvdomain.TitleStruct{
-				Title: row[3],
-			},
-		}
-
-		c.CSVMetadata = append(c.CSVMetadata, &csvMetadata)
 
 		errAssetID := svc.assetSvc.ValidateAsset(ctx, assetID)
 		for _, asset := range assets {
@@ -196,9 +180,9 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 
 		if errAssetID != nil && errFilename != nil {
 			log.Printf("%s & %s, skipping\n", errAssetID, errFilename)
+			notAdded[assetID] = origName
 			continue
 		}
-		csvMetadata.Added = true
 
 		metadataValues := metadatadomain.Values{
 			MetadataValues: map[string]struct {
@@ -214,7 +198,7 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 			fieldValueSlice := make([]metadatadomain.FieldValue, 0)
 
 			valueArr := strings.Split(row[count], ",")
-			if !utils.IsBlankStringArray(valueArr) {
+			if len(valueArr) > 1 {
 				for _, val := range valueArr {
 
 					err = utils.ValidateSchema(headerLabel, val)
@@ -229,8 +213,6 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 				}{
 					FieldValues: fieldValueSlice,
 				}
-			} else {
-				continue
 			}
 		}
 
@@ -257,21 +239,13 @@ func (svc *Svc) UpdateIconik(ctx context.Context, viewFields []metadatadomain.Vi
 		}
 	}
 
-	var countSuccess int
-	for _, csvMetadata := range c.CSVMetadata {
-		if csvMetadata.Added {
-			countSuccess++
+	fmt.Printf("Assets successfully updated: %d of %d\n", csvFilesToUpdate-len(notAdded), csvFilesToUpdate)
+	if len(notAdded) > 0 {
+		fmt.Println("Some assets failed to update:")
+		for assetID, origName := range notAdded {
+			fmt.Printf("Asset ID: %s, Original filename: %s", assetID, origName)
 		}
 	}
-	fmt.Printf("Assets successfully updated: %d of %d\n", countSuccess, csvFilesToUpdate)
-	var countFailed int
-	for _, csvMetadata := range c.CSVMetadata {
-		if !csvMetadata.Added {
-			countFailed++
-			log.Printf("%s (Title: %s, Original filename: %s)", csvMetadata.IDStruct.ID, csvMetadata.TitleStruct.Title, csvMetadata.OriginalNameStruct.OriginalName)
-		}
-	}
-	fmt.Printf("Assets that failed to update: %d of %d\n", countFailed, csvFilesToUpdate)
 
 	return nil
 }
