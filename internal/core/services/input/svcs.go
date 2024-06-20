@@ -79,9 +79,8 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 			fieldValueSlice := make([]metadatadomain.FieldValue, 0)
 
 			valueArr := strings.Split(row[count], ",")
-			if !isBlankStringArray(valueArr) {
+			if len(valueArr) > 0 {
 				for _, val := range valueArr {
-
 					err := utils.ValidateSchema(headerLabel, val)
 					if err != nil {
 						return nil, err
@@ -94,24 +93,7 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 				}{
 					FieldValues: fieldValueSlice,
 				}
-			} else {
-				continue
 			}
-			// if len(valueArr) > 1 {
-			// 	for _, val := range valueArr {
-			// 		err := utils.ValidateSchema(headerLabel, val)
-			// 		if err != nil {
-			// 			return nil, err
-			// 		}
-			//
-			// 		fieldValueSlice = append(fieldValueSlice, metadatadomain.FieldValue{Value: val})
-			// 	}
-			// 	metadataValues.MetadataValues[headerName] = struct {
-			// 		FieldValues []metadatadomain.FieldValue `json:"field_values"`
-			// 	}{
-			// 		FieldValues: fieldValueSlice,
-			// 	}
-			// }
 		}
 
 		assetPayload, err := json.Marshal(map[string]string{"title": title})
@@ -129,8 +111,6 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 		if err != nil {
 			return nil, errors.New("error marshaling JSON")
 		}
-
-		fmt.Println(string(metadataPayload))
 
 		_, err = svc.metadataSvc.UpdateMetadataInAsset(ctx, iconik.MetadataAssetsPath, viewID, assetID, metadataPayload)
 		if err != nil {
