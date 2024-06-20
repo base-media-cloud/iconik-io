@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
@@ -19,7 +20,7 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path+"/"+viewID+"/",
+		fmt.Sprintf("%v%v%v/", a.url, path, viewID),
 		a.headers,
 		nil,
 		nil,
@@ -43,7 +44,7 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
 				http.MethodGet,
-				a.url+path+"/"+viewID+"/",
+				fmt.Sprintf("%v%v%v/", a.url, path, viewID),
 				a.headers,
 				nil,
 				nil,
@@ -100,7 +101,7 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodPut,
-		a.url+path+"/"+assetID+"/views/"+viewID+"/",
+		fmt.Sprintf("%v%v%v/views/%v/", a.url, path, assetID, viewID),
 		a.headers,
 		nil,
 		payload,
@@ -124,7 +125,7 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
 				http.MethodPut,
-				a.url+path+"/"+assetID+"/views/"+viewID+"/",
+				fmt.Sprintf("%v%v%v/views/%v/", a.url, path, assetID, viewID),
 				a.headers,
 				nil,
 				payload,
@@ -148,6 +149,7 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 			retry.OnRetry(onRetry),
 		)
 	case *statusCode != http.StatusOK:
+		fmt.Println(*statusCode, string(body))
 		return metadata.DTO{}, err
 	}
 

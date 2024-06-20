@@ -10,4 +10,6 @@ import (
 // Servicer is an interface that defines the methods that a service must implement.
 type Servicer interface {
 	Search(ctx context.Context, path string, payload []byte) (search.ResultsDTO, error)
+	ValidateAndSearchAssetID(ctx context.Context, assetID, collectionID string) (search.ObjectDTO, error)
+	ValidateAndSearchFilename(ctx context.Context, filename, collectionID string) (search.ObjectDTO, error)
 }

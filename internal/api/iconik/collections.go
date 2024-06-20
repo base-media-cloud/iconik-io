@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
@@ -19,7 +20,7 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path+"/"+collectionID+"/contents/",
+		fmt.Sprintf("%v%v%v/contents/", a.url, path, collectionID),
 		a.headers,
 		queryParams,
 		nil,
@@ -43,7 +44,7 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
 				http.MethodGet,
-				a.url+path+"/"+collectionID+"/contents/",
+				fmt.Sprintf("%v%v%v/contents/", a.url, path, collectionID),
 				a.headers,
 				queryParams,
 				nil,
@@ -100,7 +101,7 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path+"/"+collectionID+"/",
+		fmt.Sprintf("%v%v%v/", a.url, path, collectionID),
 		a.headers,
 		nil,
 		nil,
@@ -124,7 +125,7 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
 				http.MethodGet,
-				a.url+path+"/"+collectionID+"/",
+				fmt.Sprintf("%v%v%v/", a.url, path, collectionID),
 				a.headers,
 				nil,
 				nil,

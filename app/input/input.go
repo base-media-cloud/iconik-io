@@ -2,9 +2,9 @@ package input
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
-	collDomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
 	inputsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/input"
 	"github.com/rs/zerolog"
 )
@@ -14,6 +14,8 @@ const AppType = "input"
 
 // Run runs the functions to input data from a csv into iconik.
 func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
+	fmt.Println("\nInputting data from provided CSV file...")
+
 	ctx := l.WithContext(context.Background())
 
 	var err error
@@ -24,33 +26,46 @@ func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 		return err
 	}
 
-	var objects []collDomain.ObjectDTO
-	objects, err = inputSvc.GetCollectionObjects(ctx, cfg.CollectionID, 1, objects)
-	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("failed to retrieve collection contents")
-		return err
-	}
-
-	assetsMap := make(map[string]struct{})
-	collectionsMap := make(map[string]struct{})
-	var assets []collDomain.ObjectDTO
-	assets, err = inputSvc.ProcessObjects(ctx, assets, objects, assetsMap, collectionsMap)
-	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("failed to process objects")
-		return err
-	}
-
-	fmt.Println("\nInputting data from provided CSV file:")
-
 	csvData, err := inputSvc.ReadCSVFile(cfg)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to read csv file")
 		return err
 	}
-	err = inputSvc.UpdateIconik(ctx, view.ViewFields, assets, csvData, cfg)
+
+	csvHeaders := csvData[0]
+	if csvHeaders[0] != "id" || csvHeaders[1] != "original_name" || csvHeaders[2] != "size" || csvHeaders[3] != "title" {
+		fmt.Println(csvHeaders)
+		return errors.New("CSV file not properly formatted for Iconik")
+	}
+
+	matchingData, nonMatchingHeaders, err := inputSvc.MatchCSVtoView(view.ViewFields, csvData)
 	if err != nil {
-		zerolog.Ctx(ctx).Err(err).Msg("failed to update iconik")
 		return err
+	}
+
+	if len(nonMatchingHeaders) > 0 {
+		fmt.Println("Some columns from the file provided have not been included in the upload to Iconik, as they are not part of the metadata view provided. Please see below for the headers of the columns not included:")
+		fmt.Println()
+		for _, nonMatchingHeader := range nonMatchingHeaders {
+			fmt.Println(nonMatchingHeader)
+		}
+	}
+
+	csvFilesToUpdate := len(matchingData) - 2
+	fmt.Println("Amount of files to update:", csvFilesToUpdate)
+
+	notAdded, err := inputSvc.ProcessAssets(ctx, matchingData, cfg.CollectionID, cfg.ViewID)
+	if err != nil {
+		zerolog.Ctx(ctx).Err(err).Msg("failed to write csv to iconik")
+		return err
+	}
+
+	fmt.Printf("Assets successfully updated: %d of %d\n", csvFilesToUpdate-len(notAdded), csvFilesToUpdate)
+	if len(notAdded) > 0 {
+		fmt.Println("Some assets failed to update:")
+		for assetID, origName := range notAdded {
+			fmt.Printf("Asset ID: %s, Original filename: %s\n", assetID, origName)
+		}
 	}
 
 	return nil

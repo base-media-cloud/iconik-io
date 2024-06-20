@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
+	searchdomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/search"
 	"strconv"
 	"strings"
 )
@@ -43,7 +43,7 @@ func ValidateSchema(header, val string) error {
 	return fmt.Errorf("invalid value for %s. Valid values are: %s. The value is currently set to: %s", header, strings.Join(validValues, ", "), val)
 }
 
-func ValidateFilename(objects []colldomain.ObjectDTO, origName string) (string, error) {
+func ValidateFilename(objects []searchdomain.ObjectDTO, origName string) (string, error) {
 	for _, object := range objects {
 		for _, file := range object.Files {
 			if file.OriginalName == origName {

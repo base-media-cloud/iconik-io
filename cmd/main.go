@@ -38,7 +38,7 @@ func main() {
 	searchSvc := searchsvc.New(iconikAPI)
 
 	if cfg.Type == input.AppType {
-		inputSvc := inputsvc.New(collSvc, assetSvc, metadataSvc)
+		inputSvc := inputsvc.New(collSvc, assetSvc, metadataSvc, searchSvc)
 		if err = input.Run(cfg, inputSvc, l); err != nil {
 			l.Fatal().Err(err).Msg("error running input mode")
 		}

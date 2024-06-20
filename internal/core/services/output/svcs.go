@@ -39,7 +39,7 @@ func New(
 
 // GetMetadataView retrieves a Metadata view from the iconik API.
 func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadatadomain.DTO, error) {
-	view, err := svc.metadataSvc.GetMetadataView(ctx, iconik.MetadataPath, viewID)
+	view, err := svc.metadataSvc.GetMetadataView(ctx, iconik.MetadataViewPath, viewID)
 	if err != nil {
 		return metadatadomain.DTO{}, err
 	}

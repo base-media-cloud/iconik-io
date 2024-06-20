@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/assets"
 	"net/http"
@@ -16,12 +17,11 @@ import (
 func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
-	zerolog.Ctx(ctxTimeout).Info().Msg("getting asset " + assetID + " from iconik")
 
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodGet,
-		a.url+path+"/"+assetID+"/",
+		fmt.Sprintf("%v%v%v/", a.url, path, assetID),
 		a.headers,
 		nil,
 		nil,
@@ -98,7 +98,7 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 	body, statusCode, err := a.req.Do(
 		ctxTimeout,
 		http.MethodPatch,
-		a.url+path+"/"+assetID+"/",
+		fmt.Sprintf("%v%v%v/", a.url, path, assetID),
 		a.headers,
 		nil,
 		payload,
@@ -122,7 +122,7 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 			body, statusCode, err = a.req.Do(
 				ctxTimeout,
 				http.MethodPatch,
-				a.url+path+"/"+assetID+"/",
+				fmt.Sprintf("%v%v%v/", a.url, path, assetID),
 				a.headers,
 				nil,
 				payload,
