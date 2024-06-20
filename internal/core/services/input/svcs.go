@@ -82,15 +82,15 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 			if !isBlankStringArray(valueArr) {
 				for _, val := range valueArr {
 
-					err = SchemaValidator(headerLabel, val)
+					err := utils.ValidateSchema(headerLabel, val)
 					if err != nil {
-						return err
+						return nil, err
 					}
 
-					fieldValueSlice = append(fieldValueSlice, FieldValue{Value: val})
+					fieldValueSlice = append(fieldValueSlice, metadatadomain.FieldValue{Value: val})
 				}
-				csvMetadata.MetadataValuesStruct.MetadataValues[headerName] = struct {
-					FieldValues []FieldValue `json:"field_values"`
+				metadataValues.MetadataValues[headerName] = struct {
+					FieldValues []metadatadomain.FieldValue `json:"field_values"`
 				}{
 					FieldValues: fieldValueSlice,
 				}
