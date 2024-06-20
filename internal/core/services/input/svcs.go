@@ -79,21 +79,39 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 			fieldValueSlice := make([]metadatadomain.FieldValue, 0)
 
 			valueArr := strings.Split(row[count], ",")
-			if len(valueArr) > 1 {
+			if !isBlankStringArray(valueArr) {
 				for _, val := range valueArr {
-					err := utils.ValidateSchema(headerLabel, val)
+
+					err = SchemaValidator(headerLabel, val)
 					if err != nil {
-						return nil, err
+						return err
 					}
 
-					fieldValueSlice = append(fieldValueSlice, metadatadomain.FieldValue{Value: val})
+					fieldValueSlice = append(fieldValueSlice, FieldValue{Value: val})
 				}
-				metadataValues.MetadataValues[headerName] = struct {
-					FieldValues []metadatadomain.FieldValue `json:"field_values"`
+				csvMetadata.MetadataValuesStruct.MetadataValues[headerName] = struct {
+					FieldValues []FieldValue `json:"field_values"`
 				}{
 					FieldValues: fieldValueSlice,
 				}
+			} else {
+				continue
 			}
+			// if len(valueArr) > 1 {
+			// 	for _, val := range valueArr {
+			// 		err := utils.ValidateSchema(headerLabel, val)
+			// 		if err != nil {
+			// 			return nil, err
+			// 		}
+			//
+			// 		fieldValueSlice = append(fieldValueSlice, metadatadomain.FieldValue{Value: val})
+			// 	}
+			// 	metadataValues.MetadataValues[headerName] = struct {
+			// 		FieldValues []metadatadomain.FieldValue `json:"field_values"`
+			// 	}{
+			// 		FieldValues: fieldValueSlice,
+			// 	}
+			// }
 		}
 
 		assetPayload, err := json.Marshal(map[string]string{"title": title})
