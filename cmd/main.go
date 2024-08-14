@@ -18,7 +18,7 @@ import (
 
 var (
 	build   string
-	version = "0.05c"
+	version = "0.06"
 )
 
 func main() {
