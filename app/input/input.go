@@ -18,8 +18,6 @@ func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 
 	ctx := l.WithContext(context.Background())
 
-	var err error
-
 	view, err := inputSvc.GetMetadataView(ctx, cfg.ViewID)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to retrieve metadata view")
@@ -44,8 +42,12 @@ func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 	}
 
 	if len(nonMatchingHeaders) > 0 {
-		fmt.Println("Some columns from the file provided have not been included in the upload to Iconik, as they are not part of the metadata view provided. Please see below for the headers of the columns not included:")
-		fmt.Println()
+		fmt.Printf(`
+Some columns from the file provided have not been included in the upload to Iconik, 
+as they are not part of the metadata view provided. 
+
+Please see below for the headers of the columns not included:\n
+`)
 		for _, nonMatchingHeader := range nonMatchingHeaders {
 			fmt.Println(nonMatchingHeader)
 		}

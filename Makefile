@@ -7,3 +7,9 @@ build:
 
 clean:
 	./bin/clean
+
+readme:
+	./bin/readme
+
+lint:
+	./bin/lint

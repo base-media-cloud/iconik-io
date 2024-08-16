@@ -1,0 +1,3 @@
+#!/bin/bash
+
+stitchmd -o README.md md/SUMMARY.md

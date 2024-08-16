@@ -1,8 +1,17 @@
 #!/bin/bash
 
+# load the .env file
+ENV_FILE="./.env"
+
+if [ -f "$ENV_FILE" ]; then
+  export $(grep -v '^#' $ENV_FILE | xargs)
+else
+  echo ".env file not found! Exiting..."
+  exit 1
+fi
+
 # set variables
 PACKAGE=$1
-VERSION='0.06'
 BUILD=$(git rev-parse --short HEAD)
 DIR="build"
 
@@ -36,7 +45,7 @@ do
       fi
 
       # build the Go executable
-      env GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="-X './cmd/main.version=${VERSION}' -X './cmd/main.build=${BUILD}'" -o ./$DIR/$package_name ./cmd/
+      env GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="-X './config.version=${VERSION}' -X './config.build=${BUILD}'" -o ./$DIR/$package_name ./cmd/
       wait
 
       # TAR the files

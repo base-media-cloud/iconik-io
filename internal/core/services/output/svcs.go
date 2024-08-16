@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
 	colldomain "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/collections"
@@ -45,7 +44,7 @@ func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadatadom
 	}
 
 	if view.Errors != nil {
-		return metadatadomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
+		return metadatadomain.DTO{}, fmt.Errorf("%v", view.Errors)
 	}
 
 	return view, nil

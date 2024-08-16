@@ -36,7 +36,7 @@ func (s *Svc) Search(ctx context.Context, path string, payload []byte) (search.R
 	}
 
 	if dto.Errors != nil {
-		return search.ResultsDTO{}, errors.New(fmt.Sprintf("%v", dto.Errors))
+		return search.ResultsDTO{}, fmt.Errorf("%v", dto.Errors)
 	}
 
 	return dto, nil

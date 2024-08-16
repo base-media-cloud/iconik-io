@@ -128,7 +128,7 @@ func (svc *Svc) GetMetadataView(ctx context.Context, viewID string) (metadatadom
 	}
 
 	if view.Errors != nil {
-		return metadatadomain.DTO{}, errors.New(fmt.Sprintf("%v", view.Errors))
+		return metadatadomain.DTO{}, fmt.Errorf("%v", view.Errors)
 	}
 
 	return view, nil

@@ -16,15 +16,10 @@ import (
 	"net/http"
 )
 
-var (
-	build   string
-	version = "0.06"
-)
-
 func main() {
 	l := logger.New()
 
-	cfg, err := config.NewApp(build, version)
+	cfg, err := config.NewApp()
 	if err != nil {
 		l.Fatal().Err(err).Msg("error creating app config")
 	}

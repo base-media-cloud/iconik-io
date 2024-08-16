@@ -1,12 +1,17 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/sethvargo/go-envconfig"
 )
+
+var version string
 
 // App is a struct that represents the app config.
 type App struct {
@@ -18,20 +23,22 @@ type App struct {
 	AuthToken              string
 	CollectionID           string
 	ViewID                 string
-	OperationTimeout       time.Duration
-	OperationRetryAttempts uint
-	OperationRetryDelay    time.Duration
-	PerPage                int
+	OperationTimeout       time.Duration `env:"OPERATION_TIMEOUT,default=30s"`
+	OperationRetryAttempts uint          `env:"OPERATION_RETRY_ATTEMPTS,default=1"`
+	OperationRetryDelay    time.Duration `env:"OPERATION_RETRY_DELAY,default=3s"`
+	PerPage                int           `env:"PER_PAGE,default=150"`
+	Version                string        `env:"VERSION"`
+	Build                  string        `env:"BUILD"`
+	Year                   int           `env:"YEAR,default=2024"`
 }
 
 // NewApp is a function that returns a new instance of the App struct.
-func NewApp(build, version string) (*App, error) {
+func NewApp() (*App, error) {
+	fmt.Println(version)
 	var cfg App
-
-	cfg.OperationTimeout = time.Second * 30
-	cfg.OperationRetryAttempts = 1
-	cfg.OperationRetryDelay = time.Second * 3
-	cfg.PerPage = 150
+	if err := envconfig.Process(context.Background(), &cfg); err != nil {
+		return nil, err
+	}
 
 	flag.StringVar(&cfg.Input, "input", "", "Input mode - requires path to input CSV file")
 	flag.StringVar(&cfg.Output, "output", "", "Output mode - requires path to save CSV file")
@@ -43,26 +50,25 @@ func NewApp(build, version string) (*App, error) {
 	ver := flag.Bool("version", false, "Print version")
 	flag.Parse()
 
+	cfg.Version = version
+
+	if *ver {
+		cfg.Print()
+	}
+
 	if flag.NFlag() == 0 {
 		fmt.Println("Usage:")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	if *ver {
-		versionInfo(build, version)
-		return nil, nil
-	}
-
 	if cfg.Input != "" && cfg.Output != "" {
 		fmt.Println("both input or output mode selected. Please only select one.")
-		versionInfo(build, version)
 		return nil, nil
 	}
 
 	if cfg.Input == "" && cfg.Output == "" {
 		fmt.Println("neither input or output mode selected")
-		versionInfo(build, version)
 		return nil, nil
 	}
 
@@ -90,12 +96,14 @@ func NewApp(build, version string) (*App, error) {
 	return &cfg, nil
 }
 
-func versionInfo(build, version string) {
+// Print prints the version info.
+func (a *App) Print() {
 	fmt.Printf(`
 base iconik-io
 iconik CSV read/write tool
 Version: %s | Build: %s
-Copyright © 2023 Base Media Cloud Limited
+Copyright © %d Base Media Cloud Limited
 https://base-mc.com
-`, version, build)
+`, a.Version, a.Build, a.Year)
+	os.Exit(1)
 }

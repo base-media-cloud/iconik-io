@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/metadata"
 )
@@ -44,7 +43,7 @@ func (s *Svc) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 	}
 
 	if dto.Errors != nil {
-		return metadata.DTO{}, errors.New(fmt.Sprintf("%v", dto.Errors))
+		return metadata.DTO{}, fmt.Errorf("%v", dto.Errors)
 	}
 
 	return dto, nil

@@ -19,8 +19,6 @@ func Run(cfg *config.App, outputSvc *outputsvc.Svc, l zerolog.Logger) error {
 	ctx := l.WithContext(context.Background())
 	fmt.Println("Running output...")
 
-	var err error
-
 	view, err := outputSvc.GetMetadataView(ctx, cfg.ViewID)
 	if err != nil {
 		zerolog.Ctx(ctx).Err(err).Msg("failed to retrieve metadata view")
