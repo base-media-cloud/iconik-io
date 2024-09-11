@@ -46,9 +46,10 @@ func Run(cfg *config.App, inputSvc *inputsvc.Svc, l zerolog.Logger) error {
 Some columns from the file provided have not been included in the upload to Iconik, 
 as they are not part of the metadata view provided. 
 
-Please see below for the headers of the columns not included:\n
+Please see below for the headers of the columns not included:
 `)
 		for _, nonMatchingHeader := range nonMatchingHeaders {
+			fmt.Println(len(nonMatchingHeaders))
 			fmt.Println(nonMatchingHeader)
 		}
 	}
@@ -65,8 +66,8 @@ Please see below for the headers of the columns not included:\n
 	fmt.Printf("Assets successfully updated: %d of %d\n", csvFilesToUpdate-len(notAdded), csvFilesToUpdate)
 	if len(notAdded) > 0 {
 		fmt.Println("Some assets failed to update:")
-		for assetID, origName := range notAdded {
-			fmt.Printf("Asset ID: %s, Original filename: %s\n", assetID, origName)
+		for origName := range notAdded {
+			fmt.Printf("Original filename: %s\n", origName)
 		}
 	}
 

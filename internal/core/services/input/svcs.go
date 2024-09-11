@@ -42,10 +42,10 @@ func New(
 	}
 }
 
-func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectionID, viewID string) (map[string]string, error) {
+func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectionID, viewID string) (map[string]bool, error) {
 	matchingFileHeaderNames := csvData[0]
 	matchingFileHeaderLabels := csvData[1]
-	notAdded := make(map[string]string)
+	notAdded := make(map[string]bool)
 
 	for i := 2; i < len(csvData); i++ {
 		row := csvData[i]
@@ -55,12 +55,13 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 
 		_, errAssetID := svc.searchSvc.ValidateAndSearchAssetID(ctx, assetID, collectionID)
 		if errAssetID != nil {
-			_, errFilename := svc.searchSvc.ValidateAndSearchFilename(ctx, origName, collectionID)
-			if errAssetID != nil && errFilename != nil {
-				log.Printf("%s & %s, skipping\n", errAssetID, errFilename)
-				notAdded[assetID] = origName
+			result, errFilename := svc.searchSvc.ValidateAndSearchFilename(ctx, origName, collectionID)
+			if errFilename != nil {
+				log.Printf("%s & %s for %s, skipping\n", errAssetID, errFilename, title)
+				notAdded[origName] = true
 				continue
 			}
+			assetID = result.ID
 		}
 
 		metadataValues := metadatadomain.Values{
