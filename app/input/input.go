@@ -49,7 +49,6 @@ as they are not part of the metadata view provided.
 Please see below for the headers of the columns not included:
 `)
 		for _, nonMatchingHeader := range nonMatchingHeaders {
-			fmt.Println(len(nonMatchingHeaders))
 			fmt.Println(nonMatchingHeader)
 		}
 	}
