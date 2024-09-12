@@ -109,7 +109,7 @@ func (s *Svc) ValidateAndSearchFilename(ctx context.Context, filename, collectio
 		},
 		SearchFields: []string{"title", "description", "segment_text", "file_names", "metadata", "transcription_text"},
 		SearchAfter:  []interface{}{},
-		Query:        filename,
+		Query:        filename + "*",
 	}
 
 	schPayload, err := json.Marshal(sch)
