@@ -6,8 +6,6 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-export GITHUB_TOKEN=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
-
 version: 2
 
 before:
