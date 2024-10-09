@@ -16,12 +16,12 @@ BUILD=$(git rev-parse --short HEAD)
 DIR="build"
 
 if [ -d "./$DIR" ]; then
-  echo "Build Directory exists"
-else
-  mkdir $DIR
-  echo "Created build directory"
+  echo "Build Directory exists. Deleting and recreating..."
+  rm -rf "$DIR"
 fi
 
+mkdir "$DIR"
+echo "Created build directory"
 
 if [ -z "$PACKAGE" ]; then
       echo "usage: $0 <package-name>"

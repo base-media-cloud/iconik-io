@@ -3,7 +3,6 @@ package iconik
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
@@ -29,8 +28,6 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return metadata.DTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -67,12 +64,28 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
-	case *statusCode != http.StatusOK:
+	case *statusCode == http.StatusForbidden:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
 			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when getting metadata view")
+		return metadata.DTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when getting metadata view")
+		return metadata.DTO{},
+			fmt.Errorf("you do not have the correct permissions to get the metadata view %s", viewID)
+	case *statusCode != http.StatusOK:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
 			Msg("status code unexpected")
-		return metadata.DTO{}, err
+		return metadata.DTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {
@@ -110,8 +123,6 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return metadata.DTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -148,9 +159,28 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
+	case *statusCode == http.StatusForbidden:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when updating metadata")
+		return metadata.DTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when updating metadata")
+		return metadata.DTO{},
+			fmt.Errorf("you do not have the correct permissions to update the metadata for asset %s", assetID)
 	case *statusCode != http.StatusOK:
-		fmt.Println(*statusCode, string(body))
-		return metadata.DTO{}, err
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
+			Msg("status code unexpected")
+		return metadata.DTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {

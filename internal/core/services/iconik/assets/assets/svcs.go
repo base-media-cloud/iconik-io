@@ -57,7 +57,7 @@ func (s *Svc) ValidateAsset(ctx context.Context, assetID string) error {
 
 	_, err = s.api.GetAsset(ctx, iconik.AssetsPath, assetID)
 	if err != nil {
-		return fmt.Errorf("asset %s not found on iconik servers", assetID)
+		return err
 	}
 
 	return fmt.Errorf("asset %s does not exist in given collection id", assetID)

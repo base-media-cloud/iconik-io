@@ -11,7 +11,7 @@ import (
 )
 
 // New is a function that returns a new instance of the zerolog.Logger struct.
-func New() zerolog.Logger {
+func New(logFile *os.File) zerolog.Logger {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	return zerolog.New(os.Stderr).With().Timestamp().Logger()
+	return zerolog.New(logFile).With().Timestamp().Logger()
 }

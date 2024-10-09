@@ -2,4 +2,6 @@
 test_data
 .idea/
 /build
+/dist
 *.csv
+*.log
