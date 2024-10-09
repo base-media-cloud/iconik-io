@@ -3,7 +3,6 @@ package iconik
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
@@ -29,8 +28,6 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return collections.ContentsDTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -67,12 +64,27 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
-	case *statusCode != http.StatusOK:
+	case *statusCode == http.StatusForbidden:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
 			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when getting collection contents")
+		return collections.ContentsDTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when getting collection contents")
+		return collections.ContentsDTO{}, domain.Err401CollectionContents
+	case *statusCode != http.StatusOK:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
 			Msg("status code unexpected")
-		return collections.ContentsDTO{}, err
+		return collections.ContentsDTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {
@@ -110,8 +122,6 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return collections.CollectionDTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -148,12 +158,27 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
-	case *statusCode != http.StatusOK:
+	case *statusCode == http.StatusForbidden:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
 			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when getting collection")
+		return collections.CollectionDTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when getting collection")
+		return collections.CollectionDTO{}, domain.Err401Collection
+	case *statusCode != http.StatusOK:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
 			Msg("status code unexpected")
-		return collections.CollectionDTO{}, err
+		return collections.CollectionDTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {

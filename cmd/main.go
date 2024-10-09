@@ -13,11 +13,19 @@ import (
 	inputsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/input"
 	outputsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/output"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/logger"
+	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
-	l := logger.New()
+	logFile, err := os.OpenFile("bmc-iconik-io.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFile.Close()
+
+	l := logger.New(logFile)
 
 	cfg, err := config.NewApp()
 	if err != nil {

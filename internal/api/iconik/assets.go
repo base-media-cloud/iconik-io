@@ -3,7 +3,6 @@ package iconik
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/assets/assets"
@@ -30,8 +29,6 @@ func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, e
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return assets.DTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -68,8 +65,27 @@ func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, e
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
+	case *statusCode == http.StatusForbidden:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when getting asset")
+		return assets.DTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when getting asset")
+		return assets.DTO{}, domain.Err401GetAsset
 	case *statusCode != http.StatusOK:
-		return assets.DTO{}, err
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
+			Msg("status code unexpected")
+		return assets.DTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {
@@ -107,8 +123,6 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return assets.DTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -145,8 +159,27 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
+	case *statusCode == http.StatusForbidden:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when updating asset")
+		return assets.DTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when updating asset")
+		return assets.DTO{}, domain.Err401UpdateAsset
 	case *statusCode != http.StatusOK:
-		return assets.DTO{}, err
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
+			Msg("status code unexpected")
+		return assets.DTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {

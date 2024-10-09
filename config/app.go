@@ -34,7 +34,6 @@ type App struct {
 
 // NewApp is a function that returns a new instance of the App struct.
 func NewApp() (*App, error) {
-	fmt.Println(version)
 	var cfg App
 	if err := envconfig.Process(context.Background(), &cfg); err != nil {
 		return nil, err

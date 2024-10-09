@@ -3,7 +3,6 @@ package iconik
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/avast/retry-go"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain/iconik/search"
@@ -12,6 +11,7 @@ import (
 	"strconv"
 )
 
+// Search makes a request to the POST iconik search endpoint.
 func (a *API) Search(ctx context.Context, path string, payload []byte) (search.ResultsDTO, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, a.cfg.OperationTimeout)
 	defer cancel()
@@ -31,8 +31,6 @@ func (a *API) Search(ctx context.Context, path string, payload []byte) (search.R
 	opDelay := a.cfg.OperationRetryDelay
 
 	switch {
-	case errors.Is(err, domain.ErrTransformingHeaderValue) || errors.Is(err, domain.ErrTransformingHeaderKey):
-		return search.ResultsDTO{}, err
 	case statusCode == nil:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -58,7 +56,7 @@ func (a *API) Search(ctx context.Context, path string, payload []byte) (search.R
 				Debug().
 				Err(err).
 				Uint("attempt", n+1).
-				Msg("retrying to update asset in iconik")
+				Msg("retrying to search in iconik")
 		}
 		if *statusCode != http.StatusTooManyRequests {
 			opDelay = 0
@@ -69,14 +67,33 @@ func (a *API) Search(ctx context.Context, path string, payload []byte) (search.R
 			retry.Delay(opDelay),
 			retry.OnRetry(onRetry),
 		)
+	case *statusCode == http.StatusForbidden:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("forbidden when searching assets")
+		return search.ResultsDTO{}, domain.ErrForbidden
+	case *statusCode == http.StatusUnauthorized:
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			Int("status code", *statusCode).
+			RawJSON("response", body).
+			Msg("unauthorized when searching assets")
+		return search.ResultsDTO{}, domain.Err401Search
 	case *statusCode != http.StatusOK:
-		return search.ResultsDTO{}, err
+		zerolog.Ctx(ctxTimeout).Error().
+			Err(err).
+			RawJSON("response", body).
+			Int("status code", *statusCode).
+			Msg("status code unexpected")
+		return search.ResultsDTO{}, domain.ErrInternalError
 	}
 
 	if err != nil {
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
-			Msg("error updating asset")
+			Msg("error when using search")
 		return search.ResultsDTO{}, err
 	}
 
