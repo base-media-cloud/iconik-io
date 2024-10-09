@@ -77,7 +77,10 @@ func (a *API) GetCollectionContents(ctx context.Context, path, collectionID stri
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when getting collection contents")
-		return collections.ContentsDTO{}, domain.Err401CollectionContents
+		return collections.ContentsDTO{},
+			fmt.Errorf(
+				"you do not have the correct permissions to get collection contents for collection %s",
+				collectionID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -171,7 +174,8 @@ func (a *API) GetCollection(ctx context.Context, path, collectionID string) (col
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when getting collection")
-		return collections.CollectionDTO{}, domain.Err401Collection
+		return collections.CollectionDTO{},
+			fmt.Errorf("you do not have the correct permissions to get collection %s", collectionID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).

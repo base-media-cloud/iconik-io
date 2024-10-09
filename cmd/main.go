@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/input"
 	"github.com/base-media-cloud/pd-iconik-io-rd/app/output"
 	"github.com/base-media-cloud/pd-iconik-io-rd/config"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api"
 	"github.com/base-media-cloud/pd-iconik-io-rd/internal/api/iconik"
+	"github.com/base-media-cloud/pd-iconik-io-rd/internal/core/domain"
 	assetsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/iconik/assets/assets"
 	collsvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/iconik/assets/collections"
 	metadatasvc "github.com/base-media-cloud/pd-iconik-io-rd/internal/core/services/iconik/metadata"
@@ -30,6 +32,7 @@ func main() {
 	cfg, err := config.NewApp()
 	if err != nil {
 		l.Fatal().Err(err).Msg("error creating app config")
+		fmt.Println(domain.ErrInternalError)
 	}
 
 	req := api.New(&http.Client{})
@@ -44,6 +47,7 @@ func main() {
 		inputSvc := inputsvc.New(collSvc, assetSvc, metadataSvc, searchSvc)
 		if err = input.Run(cfg, inputSvc, l); err != nil {
 			l.Fatal().Err(err).Msg("error running input mode")
+			fmt.Println(err)
 		}
 		return
 	}
@@ -52,6 +56,7 @@ func main() {
 		outputSvc := outputsvc.New(collSvc, metadataSvc, searchSvc)
 		if err = output.Run(cfg, outputSvc, l); err != nil {
 			l.Fatal().Err(err).Msg("error running output mode")
+			fmt.Println(err)
 		}
 		return
 	}

@@ -78,7 +78,8 @@ func (a *API) GetAsset(ctx context.Context, path, assetID string) (assets.DTO, e
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when getting asset")
-		return assets.DTO{}, domain.Err401GetAsset
+		return assets.DTO{},
+			fmt.Errorf("you do not have the correct permissions to get asset %s", assetID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -172,7 +173,8 @@ func (a *API) PatchAsset(ctx context.Context, path, assetID string, payload []by
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when updating asset")
-		return assets.DTO{}, domain.Err401UpdateAsset
+		return assets.DTO{},
+			fmt.Errorf("you do not have the correct permissions to update asset %s", assetID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).

@@ -77,7 +77,8 @@ func (a *API) GetMetadataView(ctx context.Context, path, viewID string) (metadat
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when getting metadata view")
-		return metadata.DTO{}, domain.Err401GetMetadataView
+		return metadata.DTO{},
+			fmt.Errorf("you do not have the correct permissions to get the metadata view %s", viewID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
@@ -171,7 +172,8 @@ func (a *API) UpdateMetadataInAsset(ctx context.Context, path, viewID, assetID s
 			Int("status code", *statusCode).
 			RawJSON("response", body).
 			Msg("unauthorized when updating metadata")
-		return metadata.DTO{}, domain.Err401UpdateMetadataAsset
+		return metadata.DTO{},
+			fmt.Errorf("you do not have the correct permissions to update the metadata for asset %s", assetID)
 	case *statusCode != http.StatusOK:
 		zerolog.Ctx(ctxTimeout).Error().
 			Err(err).
