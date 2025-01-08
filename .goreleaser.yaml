@@ -1,0 +1,38 @@
+builds:
+  - id: "iconik-io"
+    main: ./cmd
+    binary: bmc-iconik-io
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
+      - -v
+    ldflags:
+      - -X ./config.version={{ .Version }} -X './config.build={{ .Commit }}
+
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+brews:
+  -
+    name: iconik-io
+    homepage: https://docs.base-foundation.io/tools/iconik-io
+    tap:
+      owner: base-media-cloud
+      name: homebrew-tap
+    commit_author:
+      name: base Software Engineering
+      email: product.dev@base-mc.com
+
+checksum:
+  name_template: 'checksums.txt'
