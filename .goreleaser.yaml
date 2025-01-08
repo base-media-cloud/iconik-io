@@ -33,10 +33,12 @@ universal_binaries:
 brews:
   -
     name: iconik-io
-    homepage: https://docs.base-foundation.io/tools/iconik-io
-    tap:
+    homepage: https://github.com/base-media-cloud/homebrew-tap
+    repository:
       owner: base-media-cloud
       name: homebrew-tap
+      branch: main
+      token: "{{ secrets.GLOBAL_HOMEBREW_TOKEN }}"
     commit_author:
       name: base Software Engineering
       email: product.dev@base-mc.com
