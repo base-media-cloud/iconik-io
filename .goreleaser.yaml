@@ -1,3 +1,10 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+version: 2
+
+env:
+  - GO111MODULE=on
+
 builds:
   - id: "iconik-io"
     main: ./cmd
@@ -12,7 +19,7 @@ builds:
     env:
       - CGO_ENABLED=0
     flags:
-      - -mod=vendor
+#      - -mod=vendor
       - -v
     ldflags:
       - -X ./config.version={{ .Version }} -X './config.build={{ .Commit }}
