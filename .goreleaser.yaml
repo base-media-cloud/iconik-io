@@ -38,10 +38,10 @@ brews:
       owner: base-media-cloud
       name: homebrew-tap
       branch: main
-      token: "{{ secrets.GLOBAL_HOMEBREW_TOKEN }}"
     commit_author:
       name: base Software Engineering
       email: product.dev@base-mc.com
+    description: CLI IO Tool for iconik
 
 checksum:
   name_template: 'checksums.txt'
