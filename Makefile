@@ -1,6 +1,7 @@
 
 NAME := bmc-iconik-io
 
+.PHONY: build
 
 build:
 	./bin/build ${NAME}

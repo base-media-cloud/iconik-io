@@ -113,7 +113,7 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 
 		_, err = svc.metadataSvc.UpdateMetadataInAsset(ctx, iconik.MetadataAssetsPath, viewID, assetID, metadataPayload)
 		if err != nil {
-			return nil, fmt.Errorf("error updating metadata for asset %v", assetID)
+			return nil, err
 		}
 
 	}
