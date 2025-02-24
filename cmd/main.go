@@ -18,11 +18,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func main() {
-	logFile, err := os.OpenFile("bmc-iconik-io.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logFilenameTimeStamped := fmt.Sprintf("iconik-io_%s.log", time.Now().Format(time.DateOnly))
+	logFile, err := os.OpenFile(logFilenameTimeStamped, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
+		fmt.Println("error creating log file")
 		log.Fatal(err)
 	}
 	defer logFile.Close()
@@ -31,8 +34,8 @@ func main() {
 
 	cfg, err := config.NewApp()
 	if err != nil {
-		l.Fatal().Err(err).Msg("error creating app config")
 		fmt.Println(domain.ErrInternalError)
+		l.Fatal().Err(err).Msg("error creating app config")
 	}
 
 	req := api.New(&http.Client{})
@@ -46,8 +49,8 @@ func main() {
 	if cfg.Type == input.AppType {
 		inputSvc := inputsvc.New(collSvc, assetSvc, metadataSvc, searchSvc)
 		if err = input.Run(cfg, inputSvc, l); err != nil {
-			l.Fatal().Err(err).Msg("error running input mode")
 			fmt.Println(err)
+			l.Fatal().Err(err).Msg("error running input mode")
 		}
 		return
 	}
@@ -55,8 +58,8 @@ func main() {
 	if cfg.Type == output.AppType {
 		outputSvc := outputsvc.New(collSvc, metadataSvc, searchSvc)
 		if err = output.Run(cfg, outputSvc, l); err != nil {
-			l.Fatal().Err(err).Msg("error running output mode")
 			fmt.Println(err)
+			l.Fatal().Err(err).Msg("error running output mode")
 		}
 		return
 	}
