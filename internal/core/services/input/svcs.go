@@ -55,10 +55,11 @@ func (svc *Svc) ProcessAssets(ctx context.Context, csvData [][]string, collectio
 
 		_, errAssetID := svc.searchSvc.ValidateAndSearchAssetID(ctx, assetID, collectionID)
 		if errAssetID != nil {
+			fmt.Println(origName)
 			result, errFilename := svc.searchSvc.ValidateAndSearchFilename(ctx, origName, collectionID)
 			if errFilename != nil {
 				log.Printf("%s & %s for %s, skipping\n", errAssetID, errFilename, title)
-				notAdded[origName] = true
+				notAdded[assetID] = true
 				continue
 			}
 			assetID = result.ID
