@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+version: 2
+
+env:
+  - GO111MODULE=on
+
+builds:
+  - id: "iconik-io"
+    main: ./cmd
+    binary: bmc-iconik-io
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+#      - -mod=vendor
+      - -v
+    ldflags:
+      - -X ./config.version={{ .Version }} -X ./config.build={{ .Commit }}
+
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+brews:
+  -
+    name: iconik-io
+    homepage: https://github.com/base-media-cloud/homebrew-tap
+    repository:
+      owner: base-media-cloud
+      name: homebrew-tap
+      branch: main
+    commit_author:
+      name: base Software Engineering
+      email: product.dev@base-mc.com
+    description: CLI IO Tool for iconik
+
+checksum:
+  name_template: 'checksums.txt'
