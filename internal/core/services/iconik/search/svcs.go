@@ -90,6 +90,10 @@ func (s *Svc) ValidateAndSearchAssetID(ctx context.Context, assetID, collectionI
 
 // ValidateAndSearchFilename validates an asset filename, searches for it and returns it.
 func (s *Svc) ValidateAndSearchFilename(ctx context.Context, filename, collectionID string) (search.ObjectDTO, error) {
+	if filename == "" {
+		return search.ObjectDTO{}, errors.New("filename is empty")
+	}
+
 	sch := search.Search{
 		DocTypes:      []string{"assets", "collections"},
 		Facets:        []string{"object_type", "media_type", "archive_status", "type", "format", "is_online", "approval_status"},

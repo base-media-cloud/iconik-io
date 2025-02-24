@@ -65,8 +65,8 @@ Please see below for the headers of the columns not included:
 	fmt.Printf("Assets successfully updated: %d of %d\n", csvFilesToUpdate-len(notAdded), csvFilesToUpdate)
 	if len(notAdded) > 0 {
 		fmt.Println("Some assets failed to update:")
-		for origName := range notAdded {
-			fmt.Printf("Original filename: %s\n", origName)
+		for assetID := range notAdded {
+			fmt.Printf("Asset ID: %s\n", assetID)
 		}
 	}
 
